@@ -1,0 +1,116 @@
+'use client'
+
+import { useState } from 'react'
+import { createClient } from '@/lib/supabase/client'
+import { useRouter } from 'next/navigation'
+import Link from 'next/link'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Field, FieldLabel } from '@/components/ui/field'
+import { Spinner } from '@/components/ui/spinner'
+import { Receipt, ArrowRight } from 'lucide-react'
+
+export default function LoginPage() {
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
+  const router = useRouter()
+  const supabase = createClient()
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setLoading(true)
+    setError(null)
+
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    })
+
+    if (error) {
+      setError(error.message)
+      setLoading(false)
+    } else {
+      router.push('/dashboard')
+      router.refresh()
+    }
+  }
+
+  return (
+    <div className="min-h-screen flex items-center justify-center px-4 py-12">
+      <div className="w-full max-w-md space-y-8">
+        <div className="text-center">
+          <div className="flex items-center justify-center gap-2 mb-4">
+            <div className="p-2 bg-primary rounded-lg">
+              <Receipt className="h-6 w-6 text-primary-foreground" />
+            </div>
+            <span className="text-2xl font-bold text-foreground">SplitEase</span>
+          </div>
+          <p className="text-muted-foreground">
+            Track expenses and split bills with friends
+          </p>
+        </div>
+
+        <Card>
+          <CardHeader className="text-center">
+            <CardTitle>Welcome back</CardTitle>
+            <CardDescription>Sign in to your account to continue</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleLogin} className="space-y-4">
+              <Field>
+                <FieldLabel htmlFor="email">Email</FieldLabel>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="you@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+              </Field>
+
+              <Field>
+                <FieldLabel htmlFor="password">Password</FieldLabel>
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="Your password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+              </Field>
+
+              {error && (
+                <div className="p-3 text-sm text-destructive bg-destructive/10 rounded-lg">
+                  {error}
+                </div>
+              )}
+
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? (
+                  <Spinner className="h-4 w-4" />
+                ) : (
+                  <>
+                    Sign In
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </>
+                )}
+              </Button>
+            </form>
+
+            <div className="mt-6 text-center text-sm">
+              <span className="text-muted-foreground">{"Don't have an account? "}</span>
+              <Link href="/auth/sign-up" className="text-primary font-medium hover:underline">
+                Sign up
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  )
+}
