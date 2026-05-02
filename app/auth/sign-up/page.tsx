@@ -10,6 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Field, FieldLabel } from '@/components/ui/field'
 import { Spinner } from '@/components/ui/spinner'
 import { Receipt, ArrowRight } from 'lucide-react'
+import { claimPendingHouseholdMembership } from '@/lib/household-membership'
 
 export default function SignUpPage() {
   const [fullName, setFullName] = useState('')
@@ -25,7 +26,7 @@ export default function SignUpPage() {
     setLoading(true)
     setError(null)
 
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -42,6 +43,9 @@ export default function SignUpPage() {
       setError(error.message)
       setLoading(false)
     } else {
+      if (data.user) {
+        await claimPendingHouseholdMembership(supabase, data.user)
+      }
       router.push('/auth/sign-up-success')
     }
   }

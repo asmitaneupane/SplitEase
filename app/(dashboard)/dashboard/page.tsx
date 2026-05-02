@@ -3,10 +3,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Empty } from '@/components/ui/empty'
 import Link from 'next/link'
-import { Plus, Users, TrendingUp, TrendingDown, ArrowRight } from 'lucide-react'
+import { Plus, Users, TrendingUp, TrendingDown, ArrowRight, Home, Wallet } from 'lucide-react'
 import { formatCurrency } from '@/lib/currency'
 import { BalanceSummary } from '@/components/dashboard/balance-summary'
 import { RecentActivity } from '@/components/dashboard/recent-activity'
+import { PageHeader } from '@/components/dashboard/page-header'
 
 export default async function DashboardPage() {
   const supabase = await createClient()
@@ -90,20 +91,63 @@ export default async function DashboardPage() {
     .order('created_at', { ascending: false })
     .limit(5)
 
+  // Household snapshot
+  const { data: householdMemberships } = await supabase
+    .from('household_members')
+    .select('household_id')
+    .eq('user_id', user.id)
+
+  const householdIds = householdMemberships?.map((m) => m.household_id) ?? []
+
+  const { data: households } = await supabase
+    .from('households')
+    .select('*')
+    .in('id', householdIds.length > 0 ? householdIds : [''])
+    .order('updated_at', { ascending: false })
+
+  const { data: householdIncomes } = await supabase
+    .from('household_income_logs')
+    .select('household_id, amount')
+    .in('household_id', householdIds.length > 0 ? householdIds : [''])
+
+  const { data: householdExpenses } = await supabase
+    .from('household_expense_logs')
+    .select('household_id, amount')
+    .in('household_id', householdIds.length > 0 ? householdIds : [''])
+
+  const totalHouseholdIncome = (householdIncomes ?? []).reduce(
+    (sum, income) => sum + Number(income.amount),
+    0,
+  )
+  const totalHouseholdExpense = (householdExpenses ?? []).reduce(
+    (sum, expense) => sum + Number(expense.amount),
+    0,
+  )
+  const householdNet = totalHouseholdIncome - totalHouseholdExpense
+  const latestHousehold = households?.[0]
+
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
-          <p className="text-muted-foreground">Overview of your expenses and balances</p>
-        </div>
-        <Button asChild>
-          <Link href="/groups/new">
-            <Plus className="h-4 w-4 mr-2" />
-            New Group
-          </Link>
-        </Button>
-      </div>
+      <PageHeader
+        title="Dashboard"
+        description="Overview of your expenses and balances"
+        actions={
+          <>
+            <Button variant="outline" asChild>
+              <Link href="/household">
+                <Home className="mr-2 h-4 w-4" />
+                View Monthly Logs
+              </Link>
+            </Button>
+            <Button asChild>
+              <Link href="/groups/new">
+                <Plus className="h-4 w-4 mr-2" />
+                New Group
+              </Link>
+            </Button>
+          </>
+        }
+      />
 
       {/* Balance Cards */}
       <div className="grid gap-4 md:grid-cols-3">
@@ -215,6 +259,94 @@ export default async function DashboardPage() {
           settlements={settlements ?? []}
         />
       </div>
+
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <Home className="h-5 w-5" />
+              Monthly Log Snapshot
+            </CardTitle>
+            <CardDescription>
+              Essential monthly log totals and quick access
+            </CardDescription>
+          </div>
+          <Button variant="ghost" size="sm" asChild>
+            <Link href="/household">
+              Open Monthly Logs
+              <ArrowRight className="ml-1 h-4 w-4" />
+            </Link>
+          </Button>
+        </CardHeader>
+        <CardContent>
+          {!households || households.length === 0 ? (
+            <Empty
+              icon={<Home className="h-10 w-10" />}
+              title="No household yet"
+              description="Create your first monthly log to track shared family income and expenses."
+              action={
+                <Button asChild size="sm">
+                  <Link href="/household/new">
+                    <Plus className="mr-1 h-4 w-4" />
+                    Create Monthly Log
+                  </Link>
+                </Button>
+              }
+            />
+          ) : (
+            <div className="space-y-4">
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="rounded-lg border bg-muted/30 p-4">
+                  <p className="text-xs text-muted-foreground">Households</p>
+                  <p className="mt-1 text-2xl font-bold">{households.length}</p>
+                </div>
+                <div className="rounded-lg border bg-muted/30 p-4">
+                  <p className="text-xs text-muted-foreground">Income</p>
+                  <p className="mt-1 text-lg font-bold text-success">
+                    {formatCurrency(totalHouseholdIncome)}
+                  </p>
+                </div>
+                <div className="rounded-lg border bg-muted/30 p-4">
+                  <p className="text-xs text-muted-foreground">Expenses</p>
+                  <p className="mt-1 text-lg font-bold text-destructive">
+                    {formatCurrency(totalHouseholdExpense)}
+                  </p>
+                </div>
+                <div className="rounded-lg border bg-muted/30 p-4">
+                  <p className="text-xs text-muted-foreground">Net</p>
+                  <p
+                    className={`mt-1 text-lg font-bold ${
+                      householdNet >= 0 ? 'text-success' : 'text-destructive'
+                    }`}
+                  >
+                    {formatCurrency(householdNet)}
+                  </p>
+                </div>
+              </div>
+
+              {latestHousehold ? (
+                <Link
+                  href={`/household/${latestHousehold.id}`}
+                  className="flex items-center justify-between rounded-lg border border-border p-3 transition-colors hover:bg-secondary/50"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+                      <Wallet className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <p className="font-medium">Latest: {latestHousehold.name}</p>
+                      <p className="text-sm text-muted-foreground">
+                        Currency: {latestHousehold.currency}
+                      </p>
+                    </div>
+                  </div>
+                  <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                </Link>
+              ) : null}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Recent Activity */}
       <RecentActivity activities={activities ?? []} groups={groups ?? []} />

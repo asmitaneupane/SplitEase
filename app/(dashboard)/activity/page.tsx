@@ -1,7 +1,9 @@
 import { createClient } from '@/lib/supabase/server'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
 import { Empty } from '@/components/ui/empty'
 import { Badge } from '@/components/ui/badge'
+import { PageHeader } from '@/components/dashboard/page-header'
 import { formatDistanceToNow } from 'date-fns'
 import { History, Receipt, Users, CreditCard, UserPlus, Trash2, Edit } from 'lucide-react'
 import Link from 'next/link'
@@ -105,10 +107,10 @@ export default async function ActivityPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Activity</h1>
-        <p className="text-muted-foreground">Recent changes across all your groups</p>
-      </div>
+      <PageHeader
+        title="Activity"
+        description="Recent changes across all your groups"
+      />
 
       <Card>
         <CardHeader>
@@ -124,6 +126,11 @@ export default async function ActivityPage() {
               icon={<History className="h-10 w-10" />}
               title="No activity yet"
               description="Activity will appear here as you create groups, add expenses, and make changes"
+              action={
+                <Button asChild size="sm">
+                  <Link href="/groups/new">Create Group</Link>
+                </Button>
+              }
             />
           ) : (
             <div className="space-y-8">

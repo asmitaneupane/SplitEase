@@ -2,8 +2,9 @@ import { createClient } from '@/lib/supabase/server'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Empty } from '@/components/ui/empty'
+import { PageHeader } from '@/components/dashboard/page-header'
 import Link from 'next/link'
-import { Plus, Users, ArrowRight } from 'lucide-react'
+import { Plus, Users, ArrowRight, Home } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 
 export default async function GroupsPage() {
@@ -39,18 +40,18 @@ export default async function GroupsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Groups</h1>
-          <p className="text-muted-foreground">Manage your expense groups</p>
-        </div>
-        <Button asChild>
+      <PageHeader
+        title="Groups"
+        description="Manage your expense groups"
+        actions={
+          <Button asChild>
           <Link href="/groups/new">
             <Plus className="h-4 w-4 mr-2" />
             New Group
           </Link>
-        </Button>
-      </div>
+          </Button>
+        }
+      />
 
       {!groups || groups.length === 0 ? (
         <Card>
@@ -58,14 +59,22 @@ export default async function GroupsPage() {
             <Empty
               icon={<Users className="h-12 w-12" />}
               title="No groups yet"
-              description="Create a group to start tracking shared expenses with friends, roommates, or travel buddies."
+              description="Create a group to start tracking shared expenses with friends, roommates, or travel buddies. For family-level finances, use Household."
               action={
-                <Button asChild>
-                  <Link href="/groups/new">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Create Your First Group
-                  </Link>
-                </Button>
+                <div className="flex flex-wrap items-center justify-center gap-2">
+                  <Button asChild>
+                    <Link href="/groups/new">
+                      <Plus className="h-4 w-4 mr-2" />
+                      Create Your First Group
+                    </Link>
+                  </Button>
+                  <Button asChild variant="outline">
+                    <Link href="/household">
+                      <Home className="h-4 w-4 mr-2" />
+                      Open Household
+                    </Link>
+                  </Button>
+                </div>
               }
             />
           </CardContent>
