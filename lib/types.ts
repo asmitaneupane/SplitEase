@@ -69,12 +69,69 @@ export interface Settlement {
 export interface Activity {
   id: string
   group_id: string | null
+  household_id: string | null
   user_id: string | null
   action: string
   entity_type: string
   entity_id: string | null
   metadata: Record<string, unknown>
   created_at: string
+}
+
+// Household Types
+export interface Household {
+  id: string
+  name: string
+  description: string | null
+  currency: string
+  created_by: string
+  created_at: string
+  updated_at: string
+}
+
+export interface HouseholdMember {
+  id: string
+  household_id: string
+  user_id: string | null
+  name: string
+  email: string | null
+  role: 'owner' | 'partner' | 'member'
+  joined_at: string
+}
+
+export interface HouseholdIncomeLog {
+  id: string
+  household_id: string
+  member_id: string
+  amount: number
+  currency: string
+  source: string
+  date: string
+  notes: string | null
+  created_by: string
+  created_at: string
+}
+
+export interface HouseholdExpenseLog {
+  id: string
+  household_id: string
+  member_id: string
+  amount: number
+  currency: string
+  category: string
+  description: string
+  date: string
+  notes: string | null
+  created_by: string
+  created_at: string
+}
+
+export interface HouseholdBalance {
+  member_id: string
+  member_name: string
+  total_income: number
+  total_expenses: number
+  net_balance: number
 }
 
 export interface Invitation {

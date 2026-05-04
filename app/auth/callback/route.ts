@@ -4,7 +4,8 @@ import { NextRequest, NextResponse } from 'next/server'
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = request.nextUrl
   const code = searchParams.get('code')
-  const next = searchParams.get('next') ?? '/'
+  // Redirect to login page by default after confirmation as requested
+  const next = searchParams.get('next') ?? '/auth/login'
 
   if (code) {
     const supabase = await createClient()

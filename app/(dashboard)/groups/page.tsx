@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Empty } from '@/components/ui/empty'
 import { PageHeader } from '@/components/dashboard/page-header'
 import Link from 'next/link'
-import { Plus, Users, ArrowRight, Home } from 'lucide-react'
+import { Plus, Users, ArrowRight, Home, History } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 
 export default async function GroupsPage() {
@@ -39,12 +39,12 @@ export default async function GroupsPage() {
   })
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8 pb-10">
       <PageHeader
         title="Groups"
-        description="Manage your expense groups"
+        description="Public expense splitting with friends and roommates"
         actions={
-          <Button asChild>
+          <Button asChild className="rounded-full shadow-lg shadow-primary/20">
           <Link href="/groups/new">
             <Plus className="h-4 w-4 mr-2" />
             New Group
@@ -54,24 +54,24 @@ export default async function GroupsPage() {
       />
 
       {!groups || groups.length === 0 ? (
-        <Card>
-          <CardContent className="py-12">
+        <Card className="glass border-transparent shadow-2xl p-12 text-center">
+          <CardContent>
             <Empty
-              icon={<Users className="h-12 w-12" />}
-              title="No groups yet"
-              description="Create a group to start tracking shared expenses with friends, roommates, or travel buddies. For family-level finances, use Household."
+              icon={<Users className="h-16 w-16 text-primary/20" />}
+              title="Alone in the world?"
+              description="Start splitting expenses with friends, roommates, or travel buddies."
               action={
-                <div className="flex flex-wrap items-center justify-center gap-2">
-                  <Button asChild>
+                <div className="flex flex-wrap items-center justify-center gap-3">
+                  <Button asChild className="rounded-full px-6 font-bold shadow-xl shadow-primary/20">
                     <Link href="/groups/new">
                       <Plus className="h-4 w-4 mr-2" />
-                      Create Your First Group
+                      Create Group
                     </Link>
                   </Button>
-                  <Button asChild variant="outline">
+                  <Button asChild variant="outline" className="rounded-full px-6 font-bold glass">
                     <Link href="/household">
                       <Home className="h-4 w-4 mr-2" />
-                      Open Household
+                      Monthly Logs
                     </Link>
                   </Button>
                 </div>
@@ -80,30 +80,37 @@ export default async function GroupsPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {groups.map((group) => (
-            <Link key={group.id} href={`/groups/${group.id}`}>
-              <Card className="h-full hover:border-primary/30 transition-colors cursor-pointer">
-                <CardHeader>
+            <Link key={group.id} href={`/groups/${group.id}`} className="block group">
+              <Card className="h-full glass hover:bg-card transition-all duration-300 border-transparent shadow-xl group-hover:-translate-y-1 relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-1 h-full bg-primary/20 group-hover:bg-primary transition-colors" />
+                <CardHeader className="pb-4">
                   <div className="flex items-start justify-between">
-                    <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center mb-2">
+                    <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                       <Users className="h-6 w-6 text-primary" />
                     </div>
-                    <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                    <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:translate-x-1 transition-transform" />
                   </div>
-                  <CardTitle className="text-lg">{group.name}</CardTitle>
-                  <CardDescription className="line-clamp-2">
-                    {group.description || 'No description'}
+                  <CardTitle className="text-xl font-bold tracking-tight group-hover:text-primary transition-colors">{group.name}</CardTitle>
+                  <CardDescription className="line-clamp-2 font-medium">
+                    {group.description || 'Split everything easily.'}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="flex items-center justify-between text-sm text-muted-foreground">
-                    <span>{countMap.get(group.id) ?? 0} members</span>
-                    <span>{group.currency}</span>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5 px-3 py-1 bg-secondary/80 rounded-full border border-border/50">
+                       <Users className="h-3 w-3 text-muted-foreground" />
+                       <span className="text-[10px] font-black uppercase tracking-wider">{countMap.get(group.id) ?? 0} Members</span>
+                    </div>
+                    <span className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">{group.currency}</span>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-2">
-                    Updated {formatDistanceToNow(new Date(group.updated_at), { addSuffix: true })}
-                  </p>
+                  <div className="flex items-center gap-2 mt-6 pt-4 border-t border-border/30">
+                     <History className="h-3 w-3 text-muted-foreground" />
+                     <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                       Last activity {formatDistanceToNow(new Date(group.updated_at), { addSuffix: true })}
+                     </p>
+                  </div>
                 </CardContent>
               </Card>
             </Link>

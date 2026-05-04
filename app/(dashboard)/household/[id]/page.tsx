@@ -9,7 +9,11 @@ import {
   DollarSign,
   User,
   Settings,
+  Sparkles,
+  PieChart as PieChartIcon,
+  LayoutGrid,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import {
   Card,
   CardContent,
@@ -21,6 +25,7 @@ import { Badge } from "@/components/ui/badge";
 import { formatCurrency } from "@/lib/currency";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { MonthlyLogBook } from "@/components/household/monthly-log-book";
+import { CategoryChart } from "@/components/household/category-chart";
 
 interface HouseholdPageProps {
   params: Promise<{ id: string }>;
@@ -119,400 +124,239 @@ export default async function HouseholdPage({ params }: HouseholdPageProps) {
   const netBalance = totalIncome - totalExpenses;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8 pb-10">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" asChild>
+          <Button variant="ghost" size="icon" asChild className="rounded-full glass">
             <Link href="/household">
               <ArrowLeft className="h-4 w-4" />
             </Link>
           </Button>
           <div>
-            <h1 className="text-2xl font-bold text-foreground">
-              {household.name}
-            </h1>
+            <div className="flex items-center gap-2">
+               <h1 className="text-3xl font-black text-foreground tracking-tight">
+                 {household.name}
+               </h1>
+               <Badge className="bg-primary/10 text-primary border-transparent">Monthly Log</Badge>
+            </div>
             {household.description && (
-              <p className="text-muted-foreground">{household.description}</p>
+              <p className="text-muted-foreground font-medium italic mt-1">{household.description}</p>
             )}
           </div>
         </div>
-        {isOwner && (
-          <Button variant="outline" size="icon" asChild>
-            <Link href={`/household/${id}/settings`}>
-              <Settings className="h-4 w-4" />
-            </Link>
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+           {isOwner && (
+             <Button variant="outline" size="icon" asChild className="rounded-full glass">
+               <Link href={`/household/${id}/settings`}>
+                 <Settings className="h-4 w-4" />
+               </Link>
+             </Button>
+           )}
+           <Button asChild className="rounded-full shadow-lg shadow-primary/20">
+              <Link href={`/household/${id}/expense/new`}>
+                 <Plus className="h-4 w-4 mr-2" />
+                 Add Expense
+              </Link>
+           </Button>
+        </div>
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid gap-4 md:grid-cols-4">
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
+      {/* Summary Stats */}
+      <div className="grid gap-6 md:grid-cols-4">
+        <Card className="glass-darker border-transparent shadow-xl relative overflow-hidden group">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
               Total Income
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex items-end justify-between">
-              <div className="text-2xl font-bold text-success">
-                {formatCurrency(totalIncome, household.currency)}
-              </div>
-              <TrendingUp className="h-4 w-4 text-success" />
+            <div className="text-2xl font-black text-success tracking-tighter">
+              {formatCurrency(totalIncome, household.currency)}
             </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
+        <Card className="glass-darker border-transparent shadow-xl relative overflow-hidden group">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
               Total Expenses
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex items-end justify-between">
-              <div className="text-2xl font-bold text-destructive">
-                {formatCurrency(totalExpenses, household.currency)}
-              </div>
-              <DollarSign className="h-4 w-4 text-destructive" />
+            <div className="text-2xl font-black text-destructive tracking-tighter">
+              {formatCurrency(totalExpenses, household.currency)}
             </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
+        <Card className="glass-darker border-transparent shadow-xl relative overflow-hidden group bg-gradient-to-br from-primary/5 to-transparent">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
               Net Balance
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className={`flex items-end justify-between`}>
-              <div
-                className={`text-2xl font-bold ${netBalance >= 0 ? "text-success" : "text-destructive"}`}
-              >
-                {netBalance >= 0 ? "+" : ""}
-                {formatCurrency(netBalance, household.currency)}
-              </div>
-              <TrendingUp
-                className={`h-4 w-4 ${netBalance >= 0 ? "text-success" : "text-destructive"}`}
-              />
+            <div className={cn(
+               "text-2xl font-black tracking-tighter",
+               netBalance >= 0 ? "text-success" : "text-destructive"
+            )}>
+               {netBalance >= 0 ? "+" : ""}
+               {formatCurrency(netBalance, household.currency)}
             </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
+        <Card className="glass-darker border-transparent shadow-xl relative overflow-hidden group">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
               Members
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex items-end justify-between">
-              <div className="text-2xl font-bold">{members?.length || 0}</div>
-              <User className="h-4 w-4 text-primary" />
+            <div className="text-2xl font-black tracking-tighter">
+               {members?.length || 0}
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Tabs */}
-      <Tabs defaultValue="balances" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="balances">Monthly Log</TabsTrigger>
-          <TabsTrigger value="income">Income</TabsTrigger>
-          <TabsTrigger value="expenses">Expenses</TabsTrigger>
-          <TabsTrigger value="members">Members</TabsTrigger>
-        </TabsList>
-
-        {/* Balances Tab */}
-        <TabsContent value="balances" className="space-y-4">
-          <MonthlyLogBook
-            householdId={id}
-            currency={household.currency}
-            members={(members || []).map((member) => ({
-              id: member.id,
-              name: member.name,
-            }))}
-            incomes={(allIncomes || []).map((income) => ({
-              id: income.id,
-              member_id: income.member_id,
-              amount: income.amount,
-              description: income.description,
-              source: income.source,
-              date: income.date,
-            }))}
-            expenses={(allExpenses || []).map((expense) => ({
-              id: expense.id,
-              member_id: expense.member_id,
-              amount: expense.amount,
-              description: expense.description,
-              category: expense.category,
-              date: expense.date,
-            }))}
-          />
-
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold">Member Net Balances</h2>
-          </div>
-
-          {memberBalances && memberBalances.length > 0 ? (
-            <div className="space-y-2">
-              {memberBalances.map((balance) => (
-                <Link
-                  key={balance.member_id}
-                  href={`/household/${id}/member/${balance.member_id}`}
-                  className="block"
-                >
-                  <Card className="hover:bg-secondary/50 transition-colors cursor-pointer">
-                    <CardContent className="p-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3 flex-1">
-                          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                            <span className="text-sm font-medium text-primary">
-                              {balance.member_name[0].toUpperCase()}
-                            </span>
-                          </div>
-                          <div>
-                            <p className="font-medium text-foreground">
-                              {balance.member_name}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              Income:{" "}
-                              {formatCurrency(
-                                balance.total_income,
-                                household.currency,
-                              )}{" "}
-                              • Expenses:{" "}
-                              {formatCurrency(
-                                balance.total_expenses,
-                                household.currency,
-                              )}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <p
-                            className={`text-lg font-bold ${balance.net_balance >= 0 ? "text-success" : "text-destructive"}`}
-                          >
-                            {balance.net_balance >= 0 ? "+" : ""}
-                            {formatCurrency(
-                              balance.net_balance,
-                              household.currency,
-                            )}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {balance.net_balance >= 0
-                              ? "Contributor"
-                              : "Spender"}
-                          </p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </Link>
-              ))}
-            </div>
-          ) : (
-            <Card>
-              <CardContent className="p-8 text-center">
-                <User className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
-                <p className="text-muted-foreground">No members yet</p>
-              </CardContent>
+      <div className="grid gap-8 lg:grid-cols-3">
+         <div className="lg:col-span-2 space-y-8">
+            <Card className="glass border-transparent shadow-2xl">
+               <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                     <LayoutGrid className="h-5 w-5 text-primary" />
+                     Monthly Log Book
+                  </CardTitle>
+                  <CardDescription>Consolidated ledger for all transactions</CardDescription>
+               </CardHeader>
+               <CardContent>
+                  <MonthlyLogBook
+                    householdId={id}
+                    currency={household.currency}
+                    members={(members || []).map((member) => ({
+                      id: member.id,
+                      name: member.name,
+                    }))}
+                    incomes={(allIncomes || []).map((income) => ({
+                      id: income.id,
+                      member_id: income.member_id,
+                      amount: income.amount,
+                      description: income.description,
+                      source: income.source,
+                      date: income.date,
+                    }))}
+                    expenses={(allExpenses || []).map((expense) => ({
+                      id: expense.id,
+                      member_id: expense.member_id,
+                      amount: expense.amount,
+                      description: expense.description,
+                      category: expense.category,
+                      date: expense.date,
+                    }))}
+                  />
+               </CardContent>
             </Card>
-          )}
-        </TabsContent>
 
-        {/* Income Tab */}
-        <TabsContent value="income" className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold">Income Logs</h2>
-            <Button asChild size="sm">
-              <Link href={`/household/${id}/income/new`}>
-                <Plus className="h-4 w-4 mr-2" />
-                Add Income
-              </Link>
-            </Button>
-          </div>
-
-          {incomeLogs && incomeLogs.length > 0 ? (
-            <div className="space-y-2">
-              {incomeLogs.map((log) => (
-                <Card key={log.id}>
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-1 flex-1">
-                        <div className="flex items-center gap-2">
-                          <p className="font-medium text-foreground">
-                            {log.description || `Income from ${log.source}`}
-                          </p>
-                          {log.source && (
-                            <Badge variant="secondary" className="text-xs">
-                              {log.source}
-                            </Badge>
-                          )}
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                          {log.household_members.name} •{" "}
-                          {new Date(log.date).toLocaleDateString()}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-bold text-success">
-                          +{formatCurrency(log.amount, household.currency)}
-                        </p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-              <Button asChild variant="outline" className="w-full">
-                <Link href={`/household/${id}/income`}>View All Income</Link>
-              </Button>
-            </div>
-          ) : (
-            <Card>
-              <CardContent className="p-8 text-center">
-                <TrendingUp className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
-                <p className="text-muted-foreground mb-4">
-                  No income logged yet
-                </p>
-                <Button asChild>
-                  <Link href={`/household/${id}/income/new`}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add First Income
-                  </Link>
-                </Button>
-              </CardContent>
+            <Card className="glass border-transparent shadow-2xl">
+               <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                     <PieChartIcon className="h-5 w-5 text-primary" />
+                     Spending by Category
+                  </CardTitle>
+                  <CardDescription>Where your money is going</CardDescription>
+               </CardHeader>
+               <CardContent>
+                  <CategoryChart expenses={allExpenses || []} />
+               </CardContent>
             </Card>
-          )}
-        </TabsContent>
+         </div>
 
-        {/* Expenses Tab */}
-        <TabsContent value="expenses" className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold">Expense Logs</h2>
-            <Button asChild size="sm">
-              <Link href={`/household/${id}/expense/new`}>
-                <Plus className="h-4 w-4 mr-2" />
-                Add Expense
-              </Link>
-            </Button>
-          </div>
-
-          {expenseLogs && expenseLogs.length > 0 ? (
-            <div className="space-y-2">
-              {expenseLogs.map((log) => (
-                <Card key={log.id}>
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-1 flex-1">
-                        <div className="flex items-center gap-2">
-                          <p className="font-medium text-foreground">
-                            {log.description}
-                          </p>
-                          {log.category && (
-                            <Badge variant="secondary" className="text-xs">
-                              {log.category}
-                            </Badge>
-                          )}
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                          {log.household_members.name} •{" "}
-                          {new Date(log.date).toLocaleDateString()}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-bold text-destructive">
-                          -{formatCurrency(log.amount, household.currency)}
-                        </p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-              <Button asChild variant="outline" className="w-full">
-                <Link href={`/household/${id}/expense`}>View All Expenses</Link>
-              </Button>
-            </div>
-          ) : (
-            <Card>
-              <CardContent className="p-8 text-center">
-                <DollarSign className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
-                <p className="text-muted-foreground mb-4">
-                  No expenses logged yet
-                </p>
-                <Button asChild>
-                  <Link href={`/household/${id}/expense/new`}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add First Expense
-                  </Link>
-                </Button>
-              </CardContent>
-            </Card>
-          )}
-        </TabsContent>
-
-        {/* Members Tab */}
-        <TabsContent value="members" className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold">Household Members</h2>
-            {isOwner && (
-              <Button asChild size="sm">
-                <Link href={`/household/${id}/settings`}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Manage Members
-                </Link>
-              </Button>
-            )}
-          </div>
-
-          {members && members.length > 0 ? (
-            <div className="space-y-2">
-              {members.map((member, idx) => (
-                <div key={member.id}>
-                  <Card>
-                    <CardContent className="p-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                            <span className="text-sm font-medium text-primary">
-                              {member.name[0].toUpperCase()}
-                            </span>
-                          </div>
-                          <div>
-                            <p className="font-medium text-foreground">
-                              {member.name}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              {member.email}
-                            </p>
-                          </div>
-                        </div>
-                        <Badge
-                          variant={
-                            member.role === "owner" ? "default" : "secondary"
-                          }
+         <div className="space-y-8">
+            {/* Member Contributions */}
+            <Card className="glass border-transparent shadow-2xl overflow-hidden">
+               <CardHeader>
+                  <CardTitle className="text-lg font-bold">Member Contribution</CardTitle>
+               </CardHeader>
+               <CardContent className="px-0">
+                  <div className="space-y-1">
+                     {memberBalances.map((balance) => (
+                        <Link 
+                           key={balance.member_id} 
+                           href={`/household/${id}/member/${balance.member_id}`}
+                           className="flex items-center justify-between px-6 py-4 hover:bg-primary/5 transition-colors group"
                         >
-                          {member.role.charAt(0).toUpperCase() +
-                            member.role.slice(1)}
-                        </Badge>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <Card>
-              <CardContent className="p-8 text-center">
-                <User className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
-                <p className="text-muted-foreground">No members yet</p>
-              </CardContent>
+                           <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center font-bold text-primary group-hover:scale-110 transition-transform">
+                                 {balance.member_name[0].toUpperCase()}
+                              </div>
+                              <div>
+                                 <p className="font-bold text-sm">{balance.member_name}</p>
+                                 <p className="text-[10px] font-black text-muted-foreground uppercase tracking-wider">
+                                    {balance.net_balance >= 0 ? "Contributor" : "Spender"}
+                                 </p>
+                              </div>
+                           </div>
+                           <div className="text-right">
+                              <p className={cn(
+                                 "font-black text-sm tracking-tight",
+                                 balance.net_balance >= 0 ? "text-success" : "text-destructive"
+                              )}>
+                                 {balance.net_balance >= 0 ? "+" : ""}
+                                 {formatCurrency(balance.net_balance, household.currency)}
+                              </p>
+                              <p className="text-[9px] text-muted-foreground">NET BALANCE</p>
+                           </div>
+                        </Link>
+                     ))}
+                  </div>
+               </CardContent>
             </Card>
-          )}
-        </TabsContent>
-      </Tabs>
+
+            {/* Recent Activity */}
+            <Card className="glass border-transparent shadow-2xl">
+               <CardHeader className="pb-4">
+                  <CardTitle className="text-lg font-bold">Recent Updates</CardTitle>
+               </CardHeader>
+               <CardContent className="space-y-6">
+                  {[...(incomeLogs || []).map(l => ({ ...l, type: 'income' })), ...(expenseLogs || []).map(l => ({ ...l, type: 'expense' }))]
+                     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                     .slice(0, 5)
+                     .map((log) => (
+                        <div key={log.id} className="flex items-start gap-3 group">
+                           <div className={cn(
+                              "w-8 h-8 rounded-lg flex items-center justify-center border transition-all",
+                              log.type === 'income' ? "bg-success/10 text-success border-success/20" : "bg-destructive/10 text-destructive border-destructive/20"
+                           )}>
+                              {log.type === 'income' ? <TrendingUp className="h-4 w-4" /> : <DollarSign className="h-4 w-4" />}
+                           </div>
+                           <div className="flex-1 min-w-0">
+                              <p className="text-xs font-bold truncate group-hover:text-primary transition-colors">
+                                 {log.description || log.source || 'No description'}
+                              </p>
+                              <div className="flex items-center justify-between mt-1">
+                                 <p className="text-[9px] font-black text-muted-foreground uppercase tracking-tighter">
+                                    {log.household_members.name}
+                                 </p>
+                                 <p className={cn(
+                                    "text-[10px] font-black",
+                                    log.type === 'income' ? "text-success" : "text-destructive"
+                                 )}>
+                                    {log.type === 'income' ? "+" : "-"}
+                                    {formatCurrency(log.amount, household.currency)}
+                                 </p>
+                              </div>
+                           </div>
+                        </div>
+                     ))}
+                  {(!incomeLogs?.length && !expenseLogs?.length) && (
+                     <p className="text-xs text-muted-foreground text-center italic">No updates yet</p>
+                  )}
+               </CardContent>
+            </Card>
+         </div>
+      </div>
     </div>
   );
 }

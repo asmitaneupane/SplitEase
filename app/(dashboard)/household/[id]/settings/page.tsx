@@ -187,10 +187,30 @@ export default function HouseholdSettingsPage() {
 
       const supabase = createClient();
 
-      // Add member to household (user_id will be set when they sign up with this email)
+      // Check if user is already a member
+      const { data: existingMember } = await supabase
+        .from("household_members")
+        .select("id")
+        .eq("household_id", householdId)
+        .eq("email", newMemberEmail)
+        .single();
+        
+      if (existingMember) {
+        toast.error("User with this email is already a member");
+        return;
+      }
+
+      // Check if user already has an account
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("email", newMemberEmail)
+        .single();
+
+      // Add member to household
       const { error } = await supabase.from("household_members").insert({
         household_id: householdId,
-        user_id: null, // Will be linked when user signs up with this email
+        user_id: profile ? profile.id : null,
         name: newMemberName,
         email: newMemberEmail,
         role: "member",
@@ -198,7 +218,7 @@ export default function HouseholdSettingsPage() {
 
       if (error) throw error;
 
-      toast.success("Member added successfully!");
+      toast.success("Member added to the circle!");
       setNewMemberName("");
       setNewMemberEmail("");
       await loadMembers();
@@ -222,7 +242,7 @@ export default function HouseholdSettingsPage() {
 
       if (error) throw error;
 
-      toast.success("Member removed successfully!");
+      toast.success("Member removed from the circle");
       await loadMembers();
     } catch (error) {
       const errorMessage =
@@ -242,7 +262,7 @@ export default function HouseholdSettingsPage() {
 
       if (error) throw error;
 
-      toast.success("Member role updated successfully!");
+      toast.success("Member role updated!");
       await loadMembers();
     } catch (error) {
       const errorMessage =
@@ -254,8 +274,8 @@ export default function HouseholdSettingsPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Spinner className="h-8 w-8" />
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Spinner className="h-8 w-8 text-primary" />
       </div>
     );
   }
@@ -265,269 +285,256 @@ export default function HouseholdSettingsPage() {
   );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8 pb-10">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" size="sm" asChild>
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" className="rounded-full glass" asChild>
             <Link href={`/household/${householdId}`}>
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back
+              <ArrowLeft className="h-5 w-5" />
             </Link>
           </Button>
-          <h1 className="text-3xl font-bold">Household Settings</h1>
+          <div>
+            <h1 className="text-3xl font-black tracking-tight">Circle Settings</h1>
+            <p className="text-muted-foreground font-medium uppercase tracking-widest text-[10px]">Configure your shared financial universe</p>
+          </div>
         </div>
       </div>
 
-      {/* Household Edit Section */}
-      {isOwner && (
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0">
-            <div>
-              <CardTitle>Household Information</CardTitle>
-              <CardDescription>Edit basic household details</CardDescription>
-            </div>
-            {!editMode && (
-              <Button size="sm" onClick={() => setEditMode(true)}>
-                <Edit2 className="h-4 w-4 mr-2" />
-                Edit
-              </Button>
-            )}
-          </CardHeader>
-          <CardContent>
-            {!editMode ? (
-              <div className="space-y-4">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">
-                    Name
-                  </p>
-                  <p className="text-lg font-semibold">{household?.name}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">
-                    Description
-                  </p>
-                  <p className="text-sm">
-                    {household?.description || "No description"}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">
-                    Currency
-                  </p>
-                  <p className="text-sm">{household?.currency}</p>
-                </div>
+      <div className="grid gap-8 lg:grid-cols-3">
+        <div className="lg:col-span-2 space-y-8">
+          {/* Household Info */}
+          <Card className="glass border-transparent shadow-xl overflow-hidden">
+            <CardHeader className="bg-card/30 flex flex-row items-center justify-between">
+              <div>
+                <CardTitle className="text-xl font-black tracking-tight">Identity</CardTitle>
+                <CardDescription className="font-medium">Core details of this monthly log</CardDescription>
               </div>
-            ) : (
-              <form className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="edit-name">Household Name</Label>
-                  <Input
-                    id="edit-name"
-                    value={editName}
-                    onChange={(e) => setEditName(e.target.value)}
-                    placeholder="e.g., John & Sarah's Household"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="edit-description">Description</Label>
-                  <Textarea
-                    id="edit-description"
-                    value={editDescription}
-                    onChange={(e) => setEditDescription(e.target.value)}
-                    placeholder="Optional: Add notes about this household"
-                    rows={3}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="edit-currency">Currency</Label>
-                  <Select value={editCurrency} onValueChange={setEditCurrency}>
-                    <SelectTrigger id="edit-currency">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="NPR">NPR (₨)</SelectItem>
-                      <SelectItem value="USD">USD ($)</SelectItem>
-                      <SelectItem value="EUR">EUR (€)</SelectItem>
-                      <SelectItem value="GBP">GBP (£)</SelectItem>
-                      <SelectItem value="INR">INR (₹)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    onClick={handleSaveHousehold}
-                    disabled={savingHousehold}
-                  >
-                    {savingHousehold ? "Saving..." : "Save Changes"}
-                  </Button>
-                  <Button variant="outline" onClick={() => setEditMode(false)}>
-                    Cancel
-                  </Button>
-                </div>
-              </form>
-            )}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Add Member Section */}
-      {isOwner && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Plus className="h-4 w-4" />
-              Add New Member
-            </CardTitle>
-            <CardDescription>
-              Invite someone to join this household
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleAddMember} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Member Name</Label>
-                  <Input
-                    id="name"
-                    placeholder="John Doe"
-                    value={newMemberName}
-                    onChange={(e) => setNewMemberName(e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email Address</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="john@example.com"
-                    value={newMemberEmail}
-                    onChange={(e) => setNewMemberEmail(e.target.value)}
-                    required
-                  />
-                </div>
-              </div>
-              <Button type="submit" disabled={addingMember}>
-                {addingMember ? "Adding..." : "Add Member"}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Members List */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Household Members ({members.length})</CardTitle>
-          <CardDescription>Manage members of this household</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {members && members.length > 0 ? (
-            <div className="space-y-2">
-              {members.map((member) => (
-                <div
-                  key={member.id}
-                  className="flex items-center justify-between p-3 border rounded-lg"
-                >
-                  <div className="flex-1">
-                    <p className="font-medium">{member.name}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {member.email}
+              {isOwner && !editMode && (
+                <Button size="sm" variant="ghost" className="rounded-full font-bold" onClick={() => setEditMode(true)}>
+                  <Edit2 className="h-4 w-4 mr-2" />
+                  Modify
+                </Button>
+              )}
+            </CardHeader>
+            <CardContent className="pt-6">
+              {!editMode ? (
+                <div className="grid gap-6 md:grid-cols-2">
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Title</p>
+                    <p className="text-lg font-bold">{household?.name}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Currency</p>
+                    <p className="text-lg font-bold">{household?.currency}</p>
+                  </div>
+                  <div className="md:col-span-2 space-y-1">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Purpose</p>
+                    <p className="text-sm font-medium italic text-muted-foreground">
+                      {household?.description || "A shared financial journey."}
                     </p>
                   </div>
-
-                  {isOwner && member.role !== "owner" && (
-                    <div className="flex items-center gap-2 ml-4">
-                      <Select
-                        value={member.role}
-                        onValueChange={(newRole) =>
-                          handleChangeRole(member.id, newRole)
-                        }
-                      >
-                        <SelectTrigger className="w-32">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="owner">Owner</SelectItem>
-                          <SelectItem value="partner">Partner</SelectItem>
-                          <SelectItem value="member">Member</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => handleRemoveMember(member.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  )}
-
-                  {isOwner && member.role === "owner" && (
-                    <div className="text-sm font-medium text-muted-foreground">
-                      Owner
-                    </div>
-                  )}
-
-                  {!isOwner && (
-                    <div className="text-sm font-medium text-muted-foreground capitalize">
-                      {member.role}
-                    </div>
-                  )}
                 </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-muted-foreground text-center py-8">
-              No members in this household yet
-            </p>
-          )}
-        </CardContent>
-      </Card>
+              ) : (
+                <form className="space-y-6">
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase tracking-widest ml-1">Title</Label>
+                    <Input
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
+                      className="glass rounded-xl h-12 border-transparent"
+                      placeholder="The Dream House"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase tracking-widest ml-1">Purpose</Label>
+                    <Textarea
+                      value={editDescription}
+                      onChange={(e) => setEditDescription(e.target.value)}
+                      className="glass rounded-xl border-transparent"
+                      placeholder="Optional notes..."
+                      rows={3}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase tracking-widest ml-1">Currency</Label>
+                    <Select value={editCurrency} onValueChange={setEditCurrency}>
+                      <SelectTrigger className="glass rounded-xl h-12 border-transparent">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="glass">
+                        <SelectItem value="NPR">NPR (₨)</SelectItem>
+                        <SelectItem value="USD">USD ($)</SelectItem>
+                        <SelectItem value="EUR">EUR (€)</SelectItem>
+                        <SelectItem value="GBP">GBP (£)</SelectItem>
+                        <SelectItem value="INR">INR (₹)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex gap-3 pt-2">
+                    <Button onClick={handleSaveHousehold} disabled={savingHousehold} className="rounded-xl px-8 font-black uppercase tracking-widest text-[10px]">
+                      {savingHousehold ? "Saving..." : "Update Circle"}
+                    </Button>
+                    <Button variant="ghost" onClick={() => setEditMode(false)} className="rounded-xl px-8 font-black uppercase tracking-widest text-[10px]">
+                      Abort
+                    </Button>
+                  </div>
+                </form>
+              )}
+            </CardContent>
+          </Card>
 
-      {/* Delete Household Section */}
-      {isOwner && (
-        <Card className="border-destructive/50 bg-destructive/5">
-          <CardHeader>
-            <CardTitle className="text-destructive">Danger Zone</CardTitle>
-            <CardDescription>
-              Permanently delete this household and all associated data
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button
-              variant="destructive"
-              onClick={() => setShowDeleteDialog(true)}
-            >
-              <Trash2 className="h-4 w-4 mr-2" />
-              Delete Household
-            </Button>
-          </CardContent>
-        </Card>
-      )}
+          {/* Members List */}
+          <Card className="glass border-transparent shadow-xl overflow-hidden">
+            <CardHeader className="bg-card/30 flex flex-row items-center justify-between">
+              <div>
+                <CardTitle className="text-xl font-black tracking-tight">The Circle ({members.length})</CardTitle>
+                <CardDescription className="font-medium">Managing collaborators</CardDescription>
+              </div>
+            </CardHeader>
+            <CardContent className="pt-6">
+              <div className="space-y-4">
+                {members.map((member) => (
+                  <div
+                    key={member.id}
+                    className="group flex items-center justify-between p-4 rounded-2xl border border-border/50 hover:bg-card/50 transition-all"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center font-black text-primary shadow-inner">
+                        {member.name[0].toUpperCase()}
+                      </div>
+                      <div>
+                        <p className="font-black text-sm tracking-tight">{member.name}</p>
+                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-1.5">
+                          <Mail className="h-3 w-3" />
+                          {member.email}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      {isOwner && member.role !== "owner" ? (
+                        <>
+                          <Select
+                            value={member.role}
+                            onValueChange={(newRole) =>
+                              handleChangeRole(member.id, newRole)
+                            }
+                          >
+                            <SelectTrigger className="glass h-9 rounded-xl border-transparent text-[10px] font-black uppercase tracking-widest w-28">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent className="glass">
+                              <SelectItem value="owner">Owner</SelectItem>
+                              <SelectItem value="partner">Partner</SelectItem>
+                              <SelectItem value="member">Member</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-9 w-9 rounded-xl text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-opacity"
+                            onClick={() => handleRemoveMember(member.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </>
+                      ) : (
+                        <Badge variant="outline" className="text-[8px] font-black uppercase tracking-widest h-6 px-3 bg-secondary/50">
+                          {member.role}
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="space-y-8">
+          {/* Add Member */}
+          {isOwner && (
+            <Card className="glass border-transparent shadow-xl">
+              <CardHeader>
+                <CardTitle className="text-lg font-black tracking-tight flex items-center gap-2">
+                  <Plus className="h-4 w-4 text-primary" />
+                  Invite Member
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleAddMember} className="space-y-6">
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase tracking-widest ml-1">Identity</Label>
+                    <Input
+                      placeholder="John Doe"
+                      className="glass rounded-xl h-12 border-transparent"
+                      value={newMemberName}
+                      onChange={(e) => setNewMemberName(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase tracking-widest ml-1">Digital Mail</Label>
+                    <Input
+                      type="email"
+                      placeholder="john@example.com"
+                      className="glass rounded-xl h-12 border-transparent"
+                      value={newMemberEmail}
+                      onChange={(e) => setNewMemberEmail(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <Button type="submit" disabled={addingMember} className="w-full h-12 rounded-xl font-black uppercase tracking-widest text-[10px] shadow-lg shadow-primary/20">
+                    {addingMember ? "Expanding..." : "Add to Circle"}
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Danger Zone */}
+          {isOwner && (
+            <Card className="glass border-destructive/20 bg-destructive/5 shadow-xl">
+              <CardHeader>
+                <CardTitle className="text-lg font-black tracking-tight text-destructive">Danger Zone</CardTitle>
+                <CardDescription className="text-xs font-medium">Irreversible actions</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button
+                  variant="ghost"
+                  className="w-full h-12 rounded-xl font-black uppercase tracking-widest text-[10px] text-destructive hover:bg-destructive/10 border border-destructive/20"
+                  onClick={() => setShowDeleteDialog(true)}
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Terminate Circle
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      </div>
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent>
+        <AlertDialogContent className="glass border-transparent shadow-2xl rounded-3xl max-w-sm">
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Household?</AlertDialogTitle>
-            <AlertDialogDescription>
+            <AlertDialogTitle className="text-xl font-black tracking-tight">Terminate Circle?</AlertDialogTitle>
+            <AlertDialogDescription className="font-medium text-muted-foreground/80">
               This will permanently delete <strong>{household?.name}</strong>{" "}
-              and all associated data including members, income, and expenses.
-              This action cannot be undone.
+              and all history. This cannot be reversed.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogCancel disabled={deletingHousehold}>
-            Cancel
-          </AlertDialogCancel>
-          <AlertDialogAction
-            onClick={handleDeleteHousehold}
-            disabled={deletingHousehold}
-            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-          >
-            {deletingHousehold ? "Deleting..." : "Delete"}
-          </AlertDialogAction>
+          <AlertDialogFooter className="gap-2 sm:gap-0 pt-4">
+            <AlertDialogCancel disabled={deletingHousehold} className="rounded-xl font-bold uppercase tracking-widest text-[10px]">Preserve</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteHousehold}
+              disabled={deletingHousehold}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 rounded-xl font-bold uppercase tracking-widest text-[10px]"
+            >
+              {deletingHousehold ? "Terminating..." : "Terminate"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     </div>

@@ -29,7 +29,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
 import { Switch } from '@/components/ui/switch'
-import { UserPlus, Users, Trash2, Crown, Clock } from 'lucide-react'
+import { UserPlus, Users, Trash2, Crown, Clock, Mail } from 'lucide-react'
 import type { GroupMember } from '@/lib/types'
 
 interface GroupMembersProps {
@@ -58,10 +58,39 @@ export function GroupMembers({ groupId, members, isAdmin, currentUserId }: Group
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error('Not authenticated')
 
+      // Check if user is already a member
+      if (email) {
+        const { data: existingMember } = await supabase
+          .from('group_members')
+          .select('id')
+          .eq('group_id', groupId)
+          .eq('email', email)
+          .single()
+
+        if (existingMember) {
+          throw new Error('User with this email is already a member')
+        }
+      }
+
+      // Check if user already has an account
+      let targetUserId = null
+      if (email && !isTemporary) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('email', email)
+          .single()
+        
+        if (profile) {
+          targetUserId = profile.id
+        }
+      }
+
       const { error: memberError } = await supabase
         .from('group_members')
         .insert({
           group_id: groupId,
+          user_id: targetUserId,
           name,
           email: email || null,
           is_temporary: isTemporary,
@@ -118,62 +147,66 @@ export function GroupMembers({ groupId, members, isAdmin, currentUserId }: Group
   }
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
+    <Card className="glass border-transparent shadow-xl overflow-hidden">
+      <CardHeader className="flex flex-row items-center justify-between bg-card/30 pb-6">
         <div>
-          <CardTitle className="flex items-center gap-2">
-            <Users className="h-5 w-5" />
-            Members ({members.length})
+          <CardTitle className="text-xl font-black tracking-tight flex items-center gap-2">
+            <Users className="h-5 w-5 text-primary" />
+            Circle ({members.length})
           </CardTitle>
-          <CardDescription>People in this group</CardDescription>
+          <CardDescription className="font-medium">Active collaborators in this group</CardDescription>
         </div>
         {isAdmin && (
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-              <Button size="sm">
+              <Button size="sm" className="rounded-full font-bold shadow-lg shadow-primary/20">
                 <UserPlus className="h-4 w-4 mr-2" />
                 Add Member
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="glass border-transparent shadow-2xl rounded-3xl max-w-sm">
               <DialogHeader>
-                <DialogTitle>Add Member</DialogTitle>
-                <DialogDescription>
-                  Add someone to this group. Temporary members {"don't"} need an account.
+                <DialogTitle className="text-2xl font-black tracking-tight">Expand the Circle</DialogTitle>
+                <DialogDescription className="font-medium text-muted-foreground/80">
+                  Invite friends to start splitting expenses.
                 </DialogDescription>
               </DialogHeader>
-              <form onSubmit={handleAddMember} className="space-y-4">
-                <Field>
-                  <FieldLabel htmlFor="memberName">Name</FieldLabel>
+              <form onSubmit={handleAddMember} className="space-y-6 pt-4">
+                <div className="space-y-2">
+                  <FieldLabel htmlFor="memberName" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Full Name</FieldLabel>
                   <Input
                     id="memberName"
                     placeholder="e.g., John Doe"
+                    className="bg-background/50 border-border/50 rounded-xl"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     required
                   />
-                </Field>
+                </div>
 
-                <Field>
-                  <FieldLabel htmlFor="memberEmail">Email (optional)</FieldLabel>
+                <div className="space-y-2">
+                  <FieldLabel htmlFor="memberEmail" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Email Address (Optional)</FieldLabel>
                   <Input
                     id="memberEmail"
                     type="email"
                     placeholder="john@example.com"
+                    className="bg-background/50 border-border/50 rounded-xl"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                   />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    They can join later using this email
+                  <p className="text-[9px] text-muted-foreground ml-1 font-bold uppercase tracking-tighter italic">
+                    Required for account synchronization
                   </p>
-                </Field>
+                </div>
 
-                <div className="flex items-center justify-between p-3 bg-secondary/50 rounded-lg">
-                  <div className="flex items-center gap-2">
-                    <Clock className="h-4 w-4 text-muted-foreground" />
+                <div className="flex items-center justify-between p-4 bg-primary/5 rounded-2xl border border-primary/10">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-primary/10 rounded-lg">
+                       <Clock className="h-4 w-4 text-primary" />
+                    </div>
                     <div>
-                      <p className="text-sm font-medium">Temporary member</p>
-                      <p className="text-xs text-muted-foreground">{"Won't"} need an account</p>
+                      <p className="text-[10px] font-black uppercase tracking-widest">Ghost Member</p>
+                      <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-tighter italic">No account required</p>
                     </div>
                   </div>
                   <Switch
@@ -183,17 +216,17 @@ export function GroupMembers({ groupId, members, isAdmin, currentUserId }: Group
                 </div>
 
                 {error && (
-                  <div className="p-3 text-sm text-destructive bg-destructive/10 rounded-lg">
+                  <div className="p-3 text-xs font-bold text-destructive bg-destructive/10 border border-destructive/20 rounded-xl">
                     {error}
                   </div>
                 )}
 
                 <div className="flex gap-3">
-                  <Button type="button" variant="outline" onClick={() => setOpen(false)} className="flex-1">
+                  <Button type="button" variant="ghost" onClick={() => setOpen(false)} className="flex-1 rounded-xl font-bold uppercase tracking-widest text-[10px]">
                     Cancel
                   </Button>
-                  <Button type="submit" disabled={loading || !name.trim()} className="flex-1">
-                    {loading ? <Spinner className="h-4 w-4" /> : 'Add Member'}
+                  <Button type="submit" disabled={loading || !name.trim()} className="flex-1 rounded-xl font-bold uppercase tracking-widest text-[10px] shadow-lg shadow-primary/20">
+                    {loading ? <Spinner className="h-4 w-4" /> : 'Confirm Invite'}
                   </Button>
                 </div>
               </form>
@@ -201,8 +234,8 @@ export function GroupMembers({ groupId, members, isAdmin, currentUserId }: Group
           </Dialog>
         )}
       </CardHeader>
-      <CardContent>
-        <div className="space-y-3">
+      <CardContent className="pt-6">
+        <div className="space-y-4">
           {members.map((member) => {
             const isCurrentUser = member.user_id === currentUserId
             const canRemove = isAdmin && !isCurrentUser && member.role !== 'admin'
@@ -210,30 +243,41 @@ export function GroupMembers({ groupId, members, isAdmin, currentUserId }: Group
             return (
               <div
                 key={member.id}
-                className="flex items-center justify-between p-3 rounded-lg border border-border"
+                className="group flex items-center justify-between p-4 rounded-2xl border border-border/50 hover:bg-card/50 transition-all duration-300 relative overflow-hidden"
               >
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                    <span className="text-sm font-medium text-primary">
-                      {member.name[0].toUpperCase()}
-                    </span>
+                <div className="absolute left-0 top-0 w-1 h-full bg-primary/20 opacity-0 group-hover:opacity-100 transition-opacity" />
+                <div className="flex items-center gap-4">
+                  <div className="relative">
+                    <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center group-hover:scale-110 transition-transform shadow-inner">
+                      <span className="text-sm font-black text-primary">
+                        {member.name[0].toUpperCase()}
+                      </span>
+                    </div>
+                    {member.role === 'admin' && (
+                      <div className="absolute -top-1 -right-1 p-1 bg-background rounded-full border border-border">
+                        <Crown className="h-2.5 w-2.5 text-warning fill-warning" />
+                      </div>
+                    )}
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="font-medium">{member.name}</span>
+                      <span className="font-black tracking-tight text-sm">{member.name}</span>
                       {isCurrentUser && (
-                        <Badge variant="secondary" className="text-xs">You</Badge>
-                      )}
-                      {member.role === 'admin' && (
-                        <Crown className="h-3.5 w-3.5 text-warning" />
+                        <Badge variant="secondary" className="text-[8px] font-black uppercase tracking-widest px-1.5 h-4">Host</Badge>
                       )}
                     </div>
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      {member.email && <span>{member.email}</span>}
+                    <div className="flex items-center gap-3 text-[10px] text-muted-foreground font-bold mt-0.5">
+                      {member.email ? (
+                        <span className="flex items-center gap-1">
+                          <Mail className="h-3 w-3" />
+                          {member.email}
+                        </span>
+                      ) : (
+                        <span className="italic">No digital identity</span>
+                      )}
                       {member.is_temporary && (
-                        <Badge variant="outline" className="text-xs">
-                          <Clock className="h-3 w-3 mr-1" />
-                          Temporary
+                        <Badge variant="outline" className="text-[8px] font-black uppercase tracking-widest border-primary/20 text-primary px-1.5 h-4 bg-primary/5">
+                          Ghost
                         </Badge>
                       )}
                     </div>
@@ -242,24 +286,24 @@ export function GroupMembers({ groupId, members, isAdmin, currentUserId }: Group
                 {canRemove && (
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
-                      <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
+                      <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full text-destructive hover:bg-destructive/10 transition-colors opacity-0 group-hover:opacity-100">
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </AlertDialogTrigger>
-                    <AlertDialogContent>
+                    <AlertDialogContent className="glass border-transparent shadow-2xl rounded-3xl max-w-sm">
                       <AlertDialogHeader>
-                        <AlertDialogTitle>Remove member?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          This will remove {member.name} from the group. Any expenses they paid for will remain, but their balances will be affected.
+                        <AlertDialogTitle className="text-xl font-black tracking-tight">Expel Member?</AlertDialogTitle>
+                        <AlertDialogDescription className="font-medium text-muted-foreground/80">
+                          This will remove {member.name} from the circle. Expenses will remain, but balances will lock.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogFooter className="gap-2 sm:gap-0 pt-4">
+                        <AlertDialogCancel className="rounded-xl font-bold uppercase tracking-widest text-[10px]">Retain</AlertDialogCancel>
                         <AlertDialogAction
                           onClick={() => handleRemoveMember(member.id, member.name)}
-                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90 rounded-xl font-bold uppercase tracking-widest text-[10px]"
                         >
-                          Remove
+                          Expel
                         </AlertDialogAction>
                       </AlertDialogFooter>
                     </AlertDialogContent>

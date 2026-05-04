@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency } from "@/lib/currency";
+import { cn } from "@/lib/utils";
 import { Separator } from "@/components/ui/separator";
 import { HouseholdActions } from "@/components/household/household-actions";
 import { Empty } from "@/components/ui/empty";
@@ -76,12 +77,12 @@ export default async function HouseholdsPage() {
   });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8 pb-10">
       <PageHeader
-        title="Monthly Log"
-        description="Manage shared monthly income and expense logs with your family"
+        title="Monthly Logs"
+        description="Private financial spaces for your partner and family"
         actions={
-          <Button asChild>
+          <Button asChild className="rounded-full shadow-lg shadow-primary/20">
           <Link href="/household/new">
             <Plus className="h-4 w-4 mr-2" />
             Create Monthly Log
@@ -92,7 +93,7 @@ export default async function HouseholdsPage() {
 
       {/* Households List */}
       {households && households.length > 0 ? (
-        <div className="space-y-6">
+        <div className="grid gap-6 md:grid-cols-2">
           {households.map((entry) => {
             const household = Array.isArray(entry.households)
               ? entry.households[0]
@@ -111,115 +112,92 @@ export default async function HouseholdsPage() {
             );
 
             return (
-              <div key={household.id} className="relative">
-                <Card className="hover:bg-secondary/50 transition-colors overflow-hidden">
-                  <CardHeader className="pb-4">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <Home className="h-5 w-5 text-primary" />
-                          <CardTitle>{household.name}</CardTitle>
+              <Card key={household.id} className="glass hover:bg-card transition-all duration-300 border-transparent shadow-xl group hover:-translate-y-1">
+                <CardHeader className="pb-4">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-primary/10 rounded-xl group-hover:scale-110 transition-transform">
+                           <Home className="h-5 w-5 text-primary" />
                         </div>
-                        {household.description && (
-                          <CardDescription className="mt-1">
-                            {household.description}
-                          </CardDescription>
-                        )}
+                        <CardTitle className="text-xl font-bold tracking-tight">{household.name}</CardTitle>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <HouseholdActions
-                          householdId={household.id}
-                          householdName={household.name}
-                          householdDescription={household.description}
-                          householdCurrency={household.currency}
-                          isOwner={household.created_by === user?.id}
-                        />
+                      {household.description && (
+                        <CardDescription className="mt-2 line-clamp-1 font-medium italic">
+                          "{household.description}"
+                        </CardDescription>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <HouseholdActions
+                        householdId={household.id}
+                        householdName={household.name}
+                        householdDescription={household.description}
+                        householdCurrency={household.currency}
+                        isOwner={household.created_by === user?.id}
+                      />
+                    </div>
+                  </div>
+                </CardHeader>
+                <Link href={`/household/${household.id}`} className="block">
+                  <CardContent className="space-y-6">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="p-4 rounded-2xl bg-success/5 border border-success/10 group-hover:bg-success/10 transition-colors">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-success mb-1">Income</p>
+                        <p className="text-xl font-black text-success tracking-tighter">
+                          {formatCurrency(totalIncome, household.currency)}
+                        </p>
+                      </div>
+                      <div className="p-4 rounded-2xl bg-destructive/5 border border-destructive/10 group-hover:bg-destructive/10 transition-colors">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-destructive mb-1">Expenses</p>
+                        <p className="text-xl font-black text-destructive tracking-tighter">
+                          {formatCurrency(totalExpenses, household.currency)}
+                        </p>
                       </div>
                     </div>
-                  </CardHeader>
-                  <Separator />
-                  <Link href={`/household/${household.id}`} className="block">
-                    <CardContent className="pt-4 hover:bg-secondary/30 transition-colors cursor-pointer">
-                      <div className="flex items-start justify-between">
-                        <div className="grid grid-cols-3 gap-4 flex-1">
-                          <div className="space-y-1">
-                            <p className="text-xs text-muted-foreground flex items-center gap-1">
-                              <TrendingUp className="h-3 w-3" />
-                              Total Income
-                            </p>
-                            <p className="text-lg font-semibold text-success">
-                              {formatCurrency(totalIncome, household.currency)}
-                            </p>
-                          </div>
-                          <div className="space-y-1">
-                            <p className="text-xs text-muted-foreground flex items-center gap-1">
-                              <DollarSign className="h-3 w-3" />
-                              Total Expenses
-                            </p>
-                            <p className="text-lg font-semibold text-destructive">
-                              {formatCurrency(
-                                totalExpenses,
-                                household.currency,
-                              )}
-                            </p>
-                          </div>
-                          <div className="space-y-1">
-                            <p className="text-xs text-muted-foreground flex items-center gap-1">
-                              <Users className="h-3 w-3" />
-                              Members
-                            </p>
-                            <p className="text-lg font-semibold text-foreground">
-                              {members.length}
-                            </p>
-                          </div>
-                        </div>
-                        <ArrowRight className="h-5 w-5 text-muted-foreground mt-1" />
-                      </div>
 
-                      {/* Members Summary */}
-                      {members.length > 0 && (
-                        <div className="mt-4 pt-4 border-t space-y-2">
-                          <p className="text-xs font-medium text-muted-foreground">
-                            Members
-                          </p>
-                          <div className="flex flex-wrap gap-2">
-                            {members.map((member) => (
-                              <Badge
-                                key={member.member_id}
-                                variant="secondary"
-                                className="text-xs"
-                              >
-                                {member.member_name}
-                                <span className="ml-1 font-semibold">
-                                  {member.net_balance >= 0 ? "+" : ""}
-                                  {formatCurrency(
-                                    member.net_balance,
-                                    household.currency,
-                                  )}
-                                </span>
-                              </Badge>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Link>
-                </Card>
-              </div>
+                    <div className="space-y-3">
+                       <div className="flex items-center justify-between">
+                          <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Members</p>
+                          <div className="h-px flex-1 bg-border/30 mx-3" />
+                          <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:translate-x-1 transition-transform" />
+                       </div>
+                       <div className="flex flex-wrap gap-2">
+                          {members.map((member) => (
+                            <Badge
+                              key={member.member_id}
+                              variant="secondary"
+                              className="rounded-full px-3 py-1 text-[10px] font-bold border-transparent bg-secondary/80"
+                            >
+                              {member.member_name}
+                              <span className={cn(
+                                "ml-2 font-black",
+                                member.net_balance >= 0 ? "text-success" : "text-destructive"
+                              )}>
+                                {member.net_balance >= 0 ? "+" : ""}
+                                {formatCurrency(member.net_balance, household.currency)}
+                              </span>
+                            </Badge>
+                          ))}
+                       </div>
+                    </div>
+                  </CardContent>
+                </Link>
+              </Card>
             );
           })}
         </div>
       ) : (
-        <Card>
-          <CardContent className="p-8 text-center">
+        <Card className="glass border-transparent shadow-2xl p-12 text-center">
+          <CardContent>
             <Empty
-              icon={<Home className="h-10 w-10" />}
-              title="No households yet"
-              description="Create a monthly log to start tracking shared finances with your partner or family."
+              icon={<Home className="h-16 w-16 text-primary/20" />}
+              title="A fresh start"
+              description="Create your first monthly log to manage shared household finances with transparency."
               action={
-                <Button asChild>
+                <Button asChild size="lg" className="rounded-full px-8 font-bold shadow-xl shadow-primary/20">
                   <Link href="/household/new">
-                    <Plus className="h-4 w-4 mr-2" />
+                    <Plus className="h-5 w-5 mr-2" />
                     Create First Monthly Log
                   </Link>
                 </Button>
