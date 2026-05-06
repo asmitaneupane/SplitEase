@@ -1,149 +1,77 @@
 # SplitEase
 
-**Track expenses, split bills, and manage debts with friends - all in one place.**
+SplitEase is a premium, minimalist financial management platform designed for modern collaborators. Whether you're tracking shared household budgets or splitting expenses with your social circles, SplitEase brings pixel-perfect clarity to every transaction.
 
-SplitEase is a modern web application that simplifies group expense management. Keep track of who owes whom, settle debts effortlessly, and maintain financial transparency within your groups.
+## ✧ Core Philosophy: Luxury Minimalism
+We believe financial tracking shouldn't feel like a chore. SplitEase is built with a "Less is More" aesthetic:
+- **High-Contrast Typography**: Bold headings and crisp descriptions for effortless readability.
+- **Soft Sapphire & Slate Palette**: Curated, harmonious colors providing a premium, calming feel.
+- **Tactile Surfaces**: Glassmorphism, high-radius (pill-shaped) components, and pure white cards with subtle, hover-reactive shadows.
+- **Fluid Micro-animations**: Optimized transitions and responsive components that make the interface feel alive.
 
-## Features
+## ✦ Key Features
 
-- 📊 **Expense Tracking**: Log and categorize group expenses with detailed information
-- 👥 **Group Management**: Create groups for different occasions, projects, or friend circles
-- 💰 **Smart Balance Calculation**: Automatically calculate balances and settlements between group members
-- 📈 **Activity Dashboard**: View recent transactions and group activity at a glance
-- 🔐 **Secure Authentication**: User sign-up and login with Supabase
-- 🎨 **Modern UI**: Clean, responsive design with dark mode support
-- 📱 **Mobile Friendly**: Fully responsive interface for all device sizes
+### 1. Circles (Groups)
+Create private spaces for friends, travel groups, or roommates. 
+- **Real-time Splitting**: Add expenses and let the system handle the math.
+- **Smart Balances**: Instantly see who owes whom across the entire circle.
+- **Settlement Logic**: Securely record payments to keep the balance sheet clean.
+- **Custom Categories**: Create new expense categories on the fly if the default list doesn't fit your needs.
 
-## Tech Stack
+### 2. Personal Logs (Household)
+A dedicated space for private or household financial tracking.
+- **Income & Expense Tracking**: Categorize every cent of your budget, including custom category creation.
+- **Dual Calendar Universe**: A fully integrated Bikram Sambat (BS) and Gregorian (AD) calendar system. Toggle your universe mode, pick dates in either calendar, and filter your transaction ledger by authentic Nepali months.
+- **Premium Ledger**: A high-density, beautifully crafted transaction timeline.
+- **Collaborative Logs**: Securely invite partners to co-manage household finances using unified, premium invitation workflows.
 
-- **Framework**: [Next.js](https://nextjs.org/) 15+ with TypeScript
-- **Styling**: Tailwind CSS with PostCSS
-- **UI Components**: Radix UI with custom components
-- **Backend**: [Supabase](https://supabase.com/) (PostgreSQL + Authentication)
-- **Authentication**: Supabase Auth with OAuth support
-- **Analytics**: Vercel Analytics
-- **Form Handling**: React Hook Form with Zod validation
-- **Date Handling**: date-fns
+### 3. Unified Activity Universe
+A centralized, scrollable activity feed that keeps you updated on:
+- New expenses and settlements.
+- Group creations and member additions.
+- Budget adjustments across all your logs.
 
-## Project Structure
+### 4. Real Email Invitations
+Powered by **Resend**, SplitEase sends professional, high-contrast invitation emails to your collaborators, allowing them to join your circles with a single click.
 
-```
-├── app/                    # Next.js app directory
-│   ├── (dashboard)/       # Protected dashboard routes
-│   │   ├── activity/      # Recent activity view
-│   │   ├── dashboard/     # Main dashboard
-│   │   ├── groups/        # Group management
-│   │   └── settings/      # User settings
-│   ├── auth/              # Authentication pages
-│   └── layout.tsx         # Root layout with metadata
-├── components/            # React components
-│   ├── ui/               # Reusable UI components
-│   ├── dashboard/        # Dashboard-specific components
-│   └── groups/           # Group-related components
-├── lib/                   # Utility functions and types
-│   ├── supabase/        # Supabase client and middleware
-│   ├── types.ts         # TypeScript type definitions
-│   └── utils.ts         # Helper utilities
-├── hooks/                # Custom React hooks
-├── middleware.ts         # Next.js middleware for auth
-└── public/              # Static assets
-```
+## 🛠 Tech Stack
+- **Framework**: [Next.js 14+](https://nextjs.org/) (App Router)
+- **Styling**: [TailwindCSS](https://tailwindcss.com/)
+- **Database & Auth**: [Supabase](https://supabase.com/)
+- **Email Engine**: [Resend](https://resend.com/)
+- **Icons**: [Lucide React](https://lucide.dev/)
+- **Date Management**: [date-fns](https://date-fns.org/) & [nepali-date-converter](https://www.npmjs.com/package/nepali-date-converter)
 
-## Getting Started
+## 🚀 Getting Started
 
 ### Prerequisites
-
-- Node.js 18+
-- pnpm (recommended) or npm
-- Supabase account
+- Node.js 18+ 
+- A Supabase Project
+- A Resend API Key
 
 ### Installation
+```bash
+# Clone the repository
+git clone https://github.com/asmitaneupane/splitease.git
 
-1. **Clone the repository**
+# Install dependencies
+npm install
 
-   ```bash
-   git clone <repository-url>
-   cd SplitEase
-   ```
+# Start the development server
+npm run dev
+```
 
-2. **Install dependencies**
+### Environment Configuration
+Create a `.env.local` file in the root directory:
+```env
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+RESEND_API_KEY=your_resend_api_key
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+```
 
-   ```bash
-   pnpm install
-   # or
-   npm install
-   ```
+## ⚖ License
+SplitEase is designed for the modern elite. Proprietary development.
 
-3. **Set up environment variables**
-
-   Create a `.env.local` file in the root directory:
-
-   ```env
-   NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
-   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-   ```
-
-4. **Run the development server**
-
-   ```bash
-   pnpm dev
-   # or
-   npm run dev
-   ```
-
-   Open [http://localhost:3000](http://localhost:3000) in your browser.
-
-## Available Scripts
-
-- `pnpm dev` - Start development server
-- `pnpm build` - Build for production
-- `pnpm start` - Start production server
-- `pnpm lint` - Run ESLint
-
-## Database Schema
-
-The project includes a database schema setup script:
-
-- `scripts/001_create_schema.sql` - Initial database schema creation
-
-Run this script in your Supabase SQL editor to set up the required tables.
-
-## Key Pages
-
-- **Dashboard** (`/dashboard`) - Main overview with balance summary and recent activity
-- **Groups** (`/dashboard/groups`) - Manage expense groups
-- **Group Details** (`/dashboard/groups/[id]`) - View group members, balances, and expenses
-- **Add Expense** (`/dashboard/groups/[id]/expenses/new`) - Create new group expense
-- **Settings** (`/dashboard/settings`) - User preferences and account settings
-- **Activity** (`/dashboard/activity`) - Timeline of all transactions
-
-## Authentication Flow
-
-1. Users sign up or log in via `/auth/login` or `/auth/sign-up`
-2. Supabase Auth handles user verification
-3. Middleware protects dashboard routes
-4. Session managed via Supabase SSR
-
-## Development Notes
-
-- TypeScript is enforced for type safety
-- ESLint ensures code quality
-- Responsive design uses Tailwind CSS utilities
-- All UI components are customizable and accessible
-- API routes can be added in `app/api/` directory
-
-## Contributing
-
-Contributions are welcome! Please ensure:
-
-- Code follows the existing style
-- TypeScript types are properly defined
-- Components are reusable and well-documented
-
-## License
-
-See [LICENSE](LICENSE) file for details.
-
-## Support
-
-For issues, feature requests, or questions, please open an issue in the repository.
+---
+*Built with precision and clarity.*

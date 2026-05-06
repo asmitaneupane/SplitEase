@@ -18,12 +18,18 @@ import {
   Settings,
   TrendingUp,
   TrendingDown,
+  Sparkles,
+  Zap,
+  LayoutGrid,
+  Wallet,
 } from "lucide-react";
 import { formatCurrency } from "@/lib/currency";
 import { GroupMembers } from "@/components/groups/group-members";
 import { GroupExpenses } from "@/components/groups/group-expenses";
 import { GroupBalances } from "@/components/groups/group-balances";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 
 interface GroupPageProps {
   params: Promise<{ id: string }>;
@@ -38,12 +44,19 @@ export default async function GroupPage({ params }: GroupPageProps) {
 
   if (!user) return null;
 
-  // Get group
-  const { data: group } = await supabase
-    .from("groups")
-    .select("*")
-    .eq("id", id)
-    .single();
+  // Get group - Robust lookup (supports ID or Slug)
+  const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+  let group;
+
+  if (isUUID) {
+    const { data } = await supabase.from("groups").select("*").eq("id", id).single();
+    group = data;
+  }
+
+  if (!group) {
+    const { data } = await supabase.from("groups").select("*").eq("slug", id).single();
+    group = data;
+  }
 
   if (!group) {
     notFound();
@@ -53,10 +66,9 @@ export default async function GroupPage({ params }: GroupPageProps) {
   const { data: members } = await supabase
     .from("group_members")
     .select("*")
-    .eq("group_id", id)
+    .eq("group_id", group.id)
     .order("joined_at", { ascending: true });
 
-  // Get current user's member record
   const currentMember = members?.find((m) => m.user_id === user.id);
   const isAdmin = currentMember?.role === "admin";
 
@@ -64,23 +76,21 @@ export default async function GroupPage({ params }: GroupPageProps) {
   const { data: expenses } = await supabase
     .from("expenses")
     .select("*, expense_splits(*)")
-    .eq("group_id", id)
+    .eq("group_id", group.id)
     .order("date", { ascending: false });
 
   // Get settlements
   const { data: settlements } = await supabase
     .from("settlements")
     .select("*")
-    .eq("group_id", id)
+    .eq("group_id", group.id)
     .order("settled_at", { ascending: false });
 
-  // Calculate totals
   const totalExpenses =
     expenses?.reduce((sum, e) => sum + Number(e.amount), 0) ?? 0;
   const totalSettled =
     settlements?.reduce((sum, s) => sum + Number(s.amount), 0) ?? 0;
 
-  // Calculate user's balance in this group
   const userMemberIds =
     members?.filter((m) => m.user_id === user.id).map((m) => m.id) ?? [];
   let userOwed = 0;
@@ -112,128 +122,79 @@ export default async function GroupPage({ params }: GroupPageProps) {
   const userBalance = userOwed - userOwes;
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-        <div className="flex items-start gap-4">
-          <Button variant="ghost" size="icon" asChild className="mt-1">
-            <Link href="/groups">
-              <ArrowLeft className="h-4 w-4" />
-            </Link>
-          </Button>
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">{group.name}</h1>
-            <p className="text-muted-foreground">
-              {group.description ||
-                `${members?.length ?? 0} members • ${group.currency}`}
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2 ml-12 sm:ml-0">
-          <Button asChild>
-            <Link href={`/groups/${id}/expenses/new`}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Expense
-            </Link>
-          </Button>
-          {isAdmin && (
-            <Button variant="outline" size="icon" asChild>
-              <Link href={`/groups/${id}/settings`}>
-                <Settings className="h-4 w-4" />
+    <div className="space-y-10 pb-20 animate-in-slide">
+      {/* Minimal Header */}
+      <div className="relative p-10 rounded-[2rem] bg-white border border-black/5 shadow-sm overflow-hidden mb-12">
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-8">
+          <div className="flex items-center gap-6">
+            <Button variant="ghost" size="icon" asChild className="rounded-xl border border-black/5 w-12 h-12">
+              <Link href="/groups">
+                <ArrowLeft className="h-5 w-5" />
               </Link>
             </Button>
-          )}
+            <div>
+              <div className="flex items-center gap-3 mb-2">
+                <h1 className="text-4xl font-black tracking-tight">{group.name}</h1>
+                <Badge variant="outline" className="rounded-full border-black/10 text-muted-foreground/40 text-[9px] font-black uppercase tracking-widest px-2 py-0.5">
+                  {group.currency}
+                </Badge>
+              </div>
+              {group.description && (
+                <p className="text-muted-foreground/60 text-sm font-medium">
+                  {group.description}
+                </p>
+              )}
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-3">
+             {isAdmin && (
+                <Button variant="ghost" size="icon" asChild className="rounded-xl border border-black/5 w-11 h-11">
+                  <Link href={`/groups/${group.slug || group.id}/settings`}>
+                    <Settings className="h-5 w-5 text-muted-foreground/50" />
+                  </Link>
+                </Button>
+              )}
+          </div>
         </div>
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total Expenses
-            </CardTitle>
-            <Receipt className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {formatCurrency(totalExpenses, group.currency)}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {expenses?.length ?? 0} expenses
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total Settled
-            </CardTitle>
-            <TrendingUp className="h-4 w-4 text-success" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-success">
-              {formatCurrency(totalSettled, group.currency)}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {settlements?.length ?? 0} settlements
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">
-              Your Balance
-            </CardTitle>
-            {userBalance >= 0 ? (
-              <TrendingUp className="h-4 w-4 text-success" />
-            ) : (
-              <TrendingDown className="h-4 w-4 text-destructive" />
-            )}
-          </CardHeader>
-          <CardContent>
-            <div
-              className={`text-2xl font-bold ${userBalance >= 0 ? "text-success" : "text-destructive"}`}
-            >
-              {userBalance >= 0 ? "+" : ""}
-              {formatCurrency(userBalance, group.currency)}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {userBalance >= 0 ? "You are owed" : "You owe"}
-            </p>
-          </CardContent>
-        </Card>
+      {/* Financial Health Summary */}
+      <div className="grid gap-6 md:grid-cols-3">
+        <StatCard title="Total Spending" amount={totalExpenses} currency={group.currency} color="text-primary" />
+        <StatCard title="Total Settled" amount={totalSettled} currency={group.currency} color="text-emerald-400" />
+        <StatCard title="Your Net Balance" amount={userBalance} currency={group.currency} color={userBalance >= 0 ? "text-emerald-400" : "text-rose-400"} isNet />
       </div>
 
       {/* Tabs */}
-      <Tabs defaultValue="expenses" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="expenses" className="gap-2">
-            <Receipt className="h-4 w-4" />
+      <Tabs defaultValue="expenses" className="space-y-8">
+        <TabsList className="bg-white/[0.02] border border-white/5 p-1 h-12 rounded-xl flex items-center justify-start gap-1 max-w-fit px-1">
+          <TabsTrigger value="expenses" className="rounded-lg px-6 h-full data-[state=active]:bg-white/[0.05] data-[state=active]:text-primary text-[10px] font-black uppercase tracking-widest gap-2 transition-all">
+            <Receipt className="h-3.5 w-3.5" />
             Expenses
           </TabsTrigger>
-          <TabsTrigger value="balances" className="gap-2">
-            <TrendingUp className="h-4 w-4" />
+          <TabsTrigger value="balances" className="rounded-lg px-6 h-full data-[state=active]:bg-white/[0.05] data-[state=active]:text-primary text-[10px] font-black uppercase tracking-widest gap-2 transition-all">
+            <TrendingUp className="h-3.5 w-3.5" />
             Balances
           </TabsTrigger>
-          <TabsTrigger value="members" className="gap-2">
-            <Users className="h-4 w-4" />
+          <TabsTrigger value="members" className="rounded-lg px-6 h-full data-[state=active]:bg-white/[0.05] data-[state=active]:text-primary text-[10px] font-black uppercase tracking-widest gap-2 transition-all">
+            <Users className="h-3.5 w-3.5" />
             Members
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="expenses">
+        <TabsContent value="expenses" className="animate-in-fade outline-none">
           <GroupExpenses
-            groupId={id}
-            expenses={expenses ?? []}
+            groupId={group.id}
             members={members ?? []}
+            expenses={expenses ?? []}
             currency={group.currency}
           />
         </TabsContent>
 
-        <TabsContent value="balances">
+        <TabsContent value="balances" className="animate-in-fade outline-none">
           <GroupBalances
-            groupId={id}
+            groupId={group.id}
             members={members ?? []}
             expenses={expenses ?? []}
             settlements={settlements ?? []}
@@ -242,9 +203,10 @@ export default async function GroupPage({ params }: GroupPageProps) {
           />
         </TabsContent>
 
-        <TabsContent value="members">
+        <TabsContent value="members" className="animate-in-fade outline-none">
           <GroupMembers
-            groupId={id}
+            groupId={group.id}
+            groupName={group.name}
             members={members ?? []}
             isAdmin={isAdmin}
             currentUserId={user.id}
@@ -253,4 +215,22 @@ export default async function GroupPage({ params }: GroupPageProps) {
       </Tabs>
     </div>
   );
+}
+
+function StatCard({ title, amount, currency, color, isNet }: any) {
+  return (
+    <Card className="glass border-white/5 shadow-sm relative overflow-hidden group">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60">
+          {title}
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className={`text-3xl font-black tracking-tighter ${color}`}>
+          {isNet && amount >= 0 ? "+" : ""}
+          {formatCurrency(amount, currency)}
+        </div>
+      </CardContent>
+    </Card>
+  )
 }

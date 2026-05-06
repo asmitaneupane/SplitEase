@@ -38,6 +38,8 @@ export default function NewExpensePage({ params }: PageProps) {
   const [notes, setNotes] = useState('')
   const [loading, setLoading] = useState(false)
   const [fetchingData, setFetchingData] = useState(true)
+  const [isCustomCategory, setIsCustomCategory] = useState(false)
+  const [customCategory, setCustomCategory] = useState('')
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
   const supabase = createClient()
@@ -137,6 +139,12 @@ export default function NewExpensePage({ params }: PageProps) {
         throw new Error('Percentages must add up to 100%')
       }
 
+      if (isCustomCategory && !customCategory.trim()) {
+        throw new Error('Please enter a custom category name')
+      }
+
+      const finalCategory = isCustomCategory ? customCategory.trim() : category
+
       // Create expense
       const { data: expense, error: expenseError } = await supabase
         .from('expenses')
@@ -145,7 +153,7 @@ export default function NewExpensePage({ params }: PageProps) {
           description,
           amount: totalAmount,
           currency: group?.currency || 'NPR',
-          category,
+          category: finalCategory,
           paid_by: paidBy,
           split_type: splitType,
           date,
@@ -263,7 +271,18 @@ export default function NewExpensePage({ params }: PageProps) {
 
               <Field>
                 <FieldLabel htmlFor="category">Category</FieldLabel>
-                <Select value={category} onValueChange={setCategory}>
+                <Select 
+                  value={isCustomCategory ? 'custom' : category} 
+                  onValueChange={(v) => {
+                    if (v === 'custom') {
+                      setIsCustomCategory(true)
+                      setCustomCategory('')
+                    } else {
+                      setIsCustomCategory(false)
+                      setCategory(v)
+                    }
+                  }}
+                >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -273,8 +292,20 @@ export default function NewExpensePage({ params }: PageProps) {
                         {cat.label}
                       </SelectItem>
                     ))}
+                    <SelectItem value="custom" className="text-primary font-bold">
+                      + Add New Category
+                    </SelectItem>
                   </SelectContent>
                 </Select>
+                {isCustomCategory && (
+                  <Input
+                    placeholder="Category name"
+                    className="mt-2"
+                    value={customCategory}
+                    onChange={(e) => setCustomCategory(e.target.value)}
+                    autoFocus
+                  />
+                )}
               </Field>
 
               <Field>

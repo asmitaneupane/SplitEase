@@ -46,9 +46,9 @@ export function GroupExpenses({ groupId, expenses, members, currency }: GroupExp
           </CardTitle>
           <CardDescription>All expenses in this group</CardDescription>
         </div>
-        <Button asChild size="sm">
+        <Button asChild size="sm" className="rounded-full px-6 font-bold shadow-lg shadow-primary/20">
           <Link href={`/groups/${groupId}/expenses/new`}>
-            <Plus className="h-4 w-4 mr-2" />
+            <Plus className="h-4 w-4 mr-1" />
             Add Expense
           </Link>
         </Button>
@@ -59,14 +59,6 @@ export function GroupExpenses({ groupId, expenses, members, currency }: GroupExp
             icon={<Receipt className="h-10 w-10" />}
             title="No expenses yet"
             description="Add your first expense to start tracking"
-            action={
-              <Button asChild size="sm">
-                <Link href={`/groups/${groupId}/expenses/new`}>
-                  <Plus className="h-4 w-4 mr-1" />
-                  Add Expense
-                </Link>
-              </Button>
-            }
           />
         ) : (
           <div className="space-y-3">

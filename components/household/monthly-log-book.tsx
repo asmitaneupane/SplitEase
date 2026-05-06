@@ -1,8 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
+import { format } from "date-fns";
 import Link from "next/link";
-import { CalendarDays, Plus } from "lucide-react";
+import { CalendarDays, Plus, TrendingUp, DollarSign } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -29,7 +31,7 @@ interface ExpenseLog {
   id: string;
   member_id: string;
   amount: number | string;
-  description: string;
+  description: string | null;
   category: string | null;
   date: string;
 }
@@ -44,19 +46,14 @@ interface MonthlyLogBookProps {
 
 type CalendarMode = "english" | "nepali";
 
-function formatMonth(date: Date, mode: CalendarMode) {
-  const locale = mode === "nepali" ? "ne-NP-u-ca-bikram-sambat" : "en-US";
-  return new Intl.DateTimeFormat(locale, { month: "long", year: "numeric" }).format(date);
-}
+import NepaliDate from "nepali-date-converter";
 
 function formatDay(dateString: string, mode: CalendarMode) {
   const date = new Date(`${dateString}T00:00:00`);
-  const locale = mode === "nepali" ? "ne-NP-u-ca-bikram-sambat" : "en-US";
-  return new Intl.DateTimeFormat(locale, {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  }).format(date);
+  if (mode === "nepali") {
+    return new NepaliDate(date).format("YYYY MMMM DD");
+  }
+  return format(date, "MMM dd, yyyy");
 }
 
 export function MonthlyLogBook({
@@ -69,24 +66,46 @@ export function MonthlyLogBook({
   const [calendarMode, setCalendarMode] = useState<CalendarMode>("english");
 
   const monthOptions = useMemo(() => {
-    const monthMap = new Map<string, Date>();
+    const monthMap = new Map<string, { english: string; nepali: string }>();
+    
     [...incomes, ...expenses].forEach((log) => {
       if (!log.date) return;
       const date = new Date(`${log.date}T00:00:00`);
-      const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
-      if (!monthMap.has(key)) monthMap.set(key, date);
+      
+      if (calendarMode === "english") {
+        const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+        if (!monthMap.has(key)) {
+          monthMap.set(key, {
+            english: format(date, "MMMM yyyy"),
+            nepali: new NepaliDate(date).format("MMMM YYYY")
+          });
+        }
+      } else {
+        const bs = new NepaliDate(date);
+        const key = `${bs.getYear()}-${String(bs.getMonth() + 1).padStart(2, "0")}`;
+        if (!monthMap.has(key)) {
+          monthMap.set(key, {
+            english: format(date, "MMMM yyyy"),
+            nepali: bs.format("MMMM YYYY")
+          });
+        }
+      }
     });
 
     return Array.from(monthMap.entries())
-      .map(([value, date]) => ({
+      .map(([value, labels]) => ({
         value,
-        englishLabel: formatMonth(date, "english"),
-        nepaliLabel: formatMonth(date, "nepali"),
+        ...labels
       }))
       .sort((a, b) => b.value.localeCompare(a.value));
-  }, [incomes, expenses]);
+  }, [incomes, expenses, calendarMode]);
 
-  const [selectedMonth, setSelectedMonth] = useState<string>(monthOptions[0]?.value ?? "all");
+  const [selectedMonth, setSelectedMonth] = useState<string>("all");
+
+  // Reset selected month when switching modes to avoid invalid filters
+  useEffect(() => {
+    setSelectedMonth("all");
+  }, [calendarMode]);
 
   const memberNameMap = useMemo(() => {
     const map = new Map<string, string>();
@@ -116,97 +135,119 @@ export function MonthlyLogBook({
     }));
 
     const allRows = [...incomeRows, ...expenseRows];
-    const monthFiltered =
-      selectedMonth === "all"
+    
+    const monthFiltered = selectedMonth === "all"
         ? allRows
-        : allRows.filter((row) => row.date.startsWith(selectedMonth));
+        : allRows.filter((row) => {
+            const date = new Date(`${row.date}T00:00:00`);
+            if (calendarMode === "english") {
+              return row.date.startsWith(selectedMonth);
+            } else {
+              const bs = new NepaliDate(date);
+              const key = `${bs.getYear()}-${String(bs.getMonth() + 1).padStart(2, "0")}`;
+              return key === selectedMonth;
+            }
+          });
 
     return monthFiltered.sort(
       (a, b) =>
         new Date(`${b.date}T00:00:00`).getTime() -
         new Date(`${a.date}T00:00:00`).getTime(),
     );
-  }, [incomes, expenses, memberNameMap, selectedMonth]);
+  }, [incomes, expenses, memberNameMap, selectedMonth, calendarMode]);
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col gap-3 rounded-lg border p-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-2">
-          <CalendarDays className="h-4 w-4 text-muted-foreground" />
-          <span className="text-sm font-medium">Monthly Log Book</span>
+    <div className="space-y-6">
+      {/* Premium Filter Bar */}
+      <div className="flex flex-col gap-4 rounded-[2rem] bg-white border border-black/5 p-4 sm:flex-row sm:items-center sm:justify-between shadow-[0_8px_30px_rgb(0,0,0,0.02)]">
+        <div className="flex items-center gap-4 ml-2">
+          <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center text-primary shadow-inner">
+            <CalendarDays className="h-6 w-6" />
+          </div>
+          <div>
+            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-0.5">Universe Mode</span>
+            <span className="text-sm font-black text-slate-900 tracking-tight">Timeline View</span>
+          </div>
         </div>
-        <div className="flex flex-col gap-2 sm:flex-row">
+        
+        <div className="flex flex-col gap-3 sm:flex-row items-center mr-2">
           <Tabs
             value={calendarMode}
             onValueChange={(value) => setCalendarMode(value as CalendarMode)}
+            className="w-full sm:w-auto"
           >
-            <TabsList>
-              <TabsTrigger value="english">English Date</TabsTrigger>
-              <TabsTrigger value="nepali">Nepali Date</TabsTrigger>
+            <TabsList className="bg-slate-50/50 border border-black/5 p-1 rounded-full h-12">
+              <TabsTrigger 
+                value="english" 
+                className="rounded-full text-[10px] font-black uppercase tracking-widest px-6 h-10 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-primary transition-all"
+              >
+                English
+              </TabsTrigger>
+              <TabsTrigger 
+                value="nepali" 
+                className="rounded-full text-[10px] font-black uppercase tracking-widest px-6 h-10 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-primary transition-all"
+              >
+                Nepali
+              </TabsTrigger>
             </TabsList>
           </Tabs>
+
           <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-            <SelectTrigger className="min-w-[210px]">
-              <SelectValue />
+            <SelectTrigger className="w-full sm:w-[200px] bg-slate-50/50 border border-black/5 rounded-full font-black text-[11px] h-12 px-6 focus:ring-0 focus:ring-offset-0 transition-all hover:bg-slate-100/50 uppercase tracking-tight">
+              <SelectValue placeholder="Select Period" />
             </SelectTrigger>
-            <SelectContent>
-              {monthOptions.length > 0 ? (
-                monthOptions.map((month) => (
-                  <SelectItem key={month.value} value={month.value}>
-                    {calendarMode === "nepali"
-                      ? `${month.nepaliLabel} (${month.englishLabel})`
-                      : `${month.englishLabel} (${month.nepaliLabel})`}
-                  </SelectItem>
-                ))
-              ) : (
-                <SelectItem value="all">No month data</SelectItem>
-              )}
+            <SelectContent className="bg-white/95 backdrop-blur-xl border border-black/5 shadow-2xl rounded-2xl p-1">
+              <SelectItem value="all" className="font-black text-[10px] uppercase tracking-widest rounded-xl focus:bg-primary/5 focus:text-primary">All History</SelectItem>
+              {monthOptions.map((month) => (
+                <SelectItem key={month.value} value={month.value} className="font-black text-[10px] uppercase tracking-widest rounded-xl focus:bg-primary/5 focus:text-primary">
+                  {calendarMode === "nepali"
+                    ? `${month.nepali} (${month.english})`
+                    : `${month.english} (${month.nepali})`}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-2">
-        <Button asChild size="sm">
-          <Link href={`/household/${householdId}/income/new`}>
-            <Plus className="mr-1 h-4 w-4" />
-            Add Income
-          </Link>
-        </Button>
-        <Button asChild size="sm" variant="outline">
-          <Link href={`/household/${householdId}/expense/new`}>
-            <Plus className="mr-1 h-4 w-4" />
-            Add Expense
-          </Link>
-        </Button>
-      </div>
+      {/* Unified actions are now in the page header */}
 
       {filteredLogs.length > 0 ? (
-        <div className="space-y-2">
+        <div className="space-y-3">
           {filteredLogs.map((log) => (
-            <Card key={log.id}>
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between gap-4">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <p className="font-medium">{log.title}</p>
-                      <Badge variant="secondary" className="text-xs">
-                        {log.badge}
-                      </Badge>
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      {log.memberName} • {formatDay(log.date, calendarMode)}
-                    </p>
+            <div 
+              key={log.id} 
+              className="group flex items-center justify-between p-5 rounded-[1.5rem] bg-white border border-black/5 hover:border-primary/20 hover:shadow-[0_8px_30px_rgb(0,0,0,0.04)] transition-all duration-500"
+            >
+              <div className="flex items-center gap-4">
+                <div className={cn(
+                  "w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-500 group-hover:scale-110",
+                  log.type === "income" ? "bg-emerald-50 text-emerald-500" : "bg-rose-50 text-rose-500"
+                )}>
+                  {log.type === "income" ? <TrendingUp className="h-6 w-6" /> : <DollarSign className="h-6 w-6" />}
+                </div>
+                <div className="space-y-0.5">
+                  <div className="flex items-center gap-2">
+                    <p className="font-black text-slate-900 tracking-tight">{log.title}</p>
+                    <Badge variant="secondary" className="text-[8px] font-black uppercase tracking-widest px-2 py-0.5 bg-slate-100 text-slate-500 border-none">
+                      {log.badge}
+                    </Badge>
                   </div>
-                  <p
-                    className={`font-bold ${log.type === "income" ? "text-success" : "text-destructive"}`}
-                  >
-                    {log.type === "income" ? "+" : "-"}
-                    {formatCurrency(log.amount, currency)}
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                    {log.memberName} • {formatDay(log.date, calendarMode)}
                   </p>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+              <div className="text-right">
+                <p className={cn(
+                  "text-lg font-black tracking-tighter",
+                  log.type === "income" ? "text-emerald-500" : "text-rose-500"
+                )}>
+                  {log.type === "income" ? "+" : "-"}
+                  {formatCurrency(log.amount, currency)}
+                </p>
+              </div>
+            </div>
           ))}
         </div>
       ) : (

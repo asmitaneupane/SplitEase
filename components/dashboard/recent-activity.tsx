@@ -73,7 +73,7 @@ export function RecentActivity({ activities, groups }: RecentActivityProps) {
   }
 
   return (
-    <Card className="glass border-transparent shadow-xl">
+    <Card className="bg-white border-black/5 shadow-sm h-full flex flex-col">
       <CardHeader className="pb-4">
         <CardTitle className="text-lg font-bold flex items-center gap-2">
            <Sparkles className="h-4 w-4 text-primary" />
@@ -81,7 +81,7 @@ export function RecentActivity({ activities, groups }: RecentActivityProps) {
         </CardTitle>
         <CardDescription>Latest changes across your universe</CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="flex-1 min-h-0 overflow-y-auto pr-1">
         {activities.length === 0 ? (
           <Empty
             icon={<History className="h-10 w-10" />}
@@ -89,7 +89,7 @@ export function RecentActivity({ activities, groups }: RecentActivityProps) {
             description="Your recent financial activity will appear here."
           />
         ) : (
-          <div className="space-y-6">
+          <div className="flex flex-col gap-6">
             {activities.map((activity, i) => {
               const Icon = activityIcons[activity.entity_type] ?? Receipt
               const colorClass = activityColors[activity.action] ?? 'bg-secondary text-secondary-foreground'

@@ -53,32 +53,32 @@ export function SpendingChart({ data }: SpendingChartProps) {
         <AreaChart data={chartData}>
           <defs>
             <linearGradient id="colorIncome" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
-              <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+              <stop offset="5%" stopColor="var(--success)" stopOpacity={0.3} />
+              <stop offset="95%" stopColor="var(--success)" stopOpacity={0} />
             </linearGradient>
             <linearGradient id="colorExpense" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.3} />
-              <stop offset="95%" stopColor="#f43f5e" stopOpacity={0} />
+              <stop offset="5%" stopColor="var(--destructive)" stopOpacity={0.3} />
+              <stop offset="95%" stopColor="var(--destructive)" stopOpacity={0} />
             </linearGradient>
           </defs>
-          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
+          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
           <XAxis
             dataKey="date"
             axisLine={false}
             tickLine={false}
-            tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
+            tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }}
             dy={10}
           />
           <YAxis
             axisLine={false}
             tickLine={false}
-            tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
+            tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }}
             tickFormatter={(value) => `NPR ${value}`}
           />
           <Tooltip
             contentStyle={{
-              backgroundColor: 'hsl(var(--card))',
-              border: '1px solid hsl(var(--border))',
+              backgroundColor: 'var(--card)',
+              border: '1px solid var(--border)',
               borderRadius: '12px',
               boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)',
             }}
@@ -87,7 +87,7 @@ export function SpendingChart({ data }: SpendingChartProps) {
           <Area
             type="monotone"
             dataKey="income"
-            stroke="#10b981"
+            stroke="var(--success)"
             strokeWidth={3}
             fillOpacity={1}
             fill="url(#colorIncome)"
@@ -95,7 +95,7 @@ export function SpendingChart({ data }: SpendingChartProps) {
           <Area
             type="monotone"
             dataKey="expense"
-            stroke="#f43f5e"
+            stroke="var(--destructive)"
             strokeWidth={3}
             fillOpacity={1}
             fill="url(#colorExpense)"

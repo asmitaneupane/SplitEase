@@ -2,12 +2,13 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { MoreVertical, Edit2, Trash2 } from "lucide-react";
+import { MoreVertical, Edit2, Trash2, AlertCircle, Loader2, Settings } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,6 +17,7 @@ import {
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
+  AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
@@ -39,6 +41,7 @@ import {
 } from "@/components/ui/select";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
+import { CURRENCIES } from "@/lib/currency";
 
 interface HouseholdActionsProps {
   householdId: string;
@@ -68,7 +71,7 @@ export function HouseholdActions({
 
   const handleEdit = async () => {
     if (!editName.trim()) {
-      toast.error("Household name cannot be empty");
+      toast.error("Name cannot be empty");
       return;
     }
 
@@ -87,13 +90,10 @@ export function HouseholdActions({
       if (error) throw error;
 
       toast.success("Household updated successfully!");
-      setShowEditDialog(false);
       router.refresh();
+      setShowEditDialog(false);
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : "Failed to update household";
-      toast.error(errorMessage);
-      console.error(error);
+      toast.error(error instanceof Error ? error.message : "Failed to update household");
     } finally {
       setSaving(false);
     }
@@ -112,12 +112,8 @@ export function HouseholdActions({
 
       toast.success("Household deleted successfully!");
       router.refresh();
-      router.push("/household");
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : "Failed to delete household";
-      toast.error(errorMessage);
-      console.error(error);
+    } catch (error: any) {
+      toast.error(error.message || "Failed to delete household");
     } finally {
       setDeleting(false);
       setShowDeleteDialog(false);
@@ -131,44 +127,60 @@ export function HouseholdActions({
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
-            variant="outline"
-            size="sm"
-            className="h-8 w-8 border-border bg-background p-0 hover:bg-muted"
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 rounded-full hover:bg-primary/10 hover:text-primary transition-colors"
+            onClick={(e) => e.stopPropagation()}
           >
             <MoreVertical className="h-4 w-4" />
             <span className="sr-only">Open menu</span>
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuItem onClick={() => setShowEditDialog(true)}>
+        <DropdownMenuContent align="end" className="w-48 bg-white border-black/5 shadow-lg">
+          <DropdownMenuItem onClick={(e) => {
+            e.stopPropagation();
+            setShowEditDialog(true);
+          }} className="cursor-pointer">
             <Edit2 className="h-4 w-4 mr-2" />
-            Edit
+            Edit Info
           </DropdownMenuItem>
+          <DropdownMenuItem asChild className="cursor-pointer">
+            <a href={`/household/${householdId}/settings`} onClick={(e) => e.stopPropagation()}>
+              <Settings className="h-4 w-4 mr-2" />
+              Manage Circle
+            </a>
+          </DropdownMenuItem>
+          <DropdownMenuSeparator className="bg-white/10" />
           <DropdownMenuItem
-            onClick={() => setShowDeleteDialog(true)}
-            className="text-destructive"
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowDeleteDialog(true);
+            }}
+            className="text-destructive focus:text-destructive cursor-pointer"
           >
             <Trash2 className="h-4 w-4 mr-2" />
-            Delete
+            Delete Household
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
 
       {/* Edit Dialog */}
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-        <DialogContent>
+        <DialogContent className="glass border-white/10">
           <DialogHeader>
             <DialogTitle>Edit Household</DialogTitle>
-            <DialogDescription>Update household information</DialogDescription>
+            <DialogDescription>
+              Update the details of your household space.
+            </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="name">Household Name</Label>
               <Input
                 id="name"
                 value={editName}
                 onChange={(e) => setEditName(e.target.value)}
-                placeholder="e.g., John & Sarah's Household"
+                className="bg-white/5 border-white/10"
               />
             </div>
             <div className="space-y-2">
@@ -177,32 +189,32 @@ export function HouseholdActions({
                 id="description"
                 value={editDescription}
                 onChange={(e) => setEditDescription(e.target.value)}
-                placeholder="Optional: Add notes about this household"
+                className="bg-white/5 border-white/10"
                 rows={3}
               />
             </div>
             <div className="space-y-2">
               <Label htmlFor="currency">Currency</Label>
               <Select value={editCurrency} onValueChange={setEditCurrency}>
-                <SelectTrigger id="currency">
+                <SelectTrigger className="bg-white/5 border-white/10">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="NPR">NPR (₨)</SelectItem>
-                  <SelectItem value="USD">USD ($)</SelectItem>
-                  <SelectItem value="EUR">EUR (€)</SelectItem>
-                  <SelectItem value="GBP">GBP (£)</SelectItem>
-                  <SelectItem value="INR">INR (₹)</SelectItem>
+                <SelectContent className="glass border-white/10">
+                  {CURRENCIES.map((c) => (
+                    <SelectItem key={c.code} value={c.code}>
+                      {c.symbol} {c.name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowEditDialog(false)}>
+            <Button variant="ghost" onClick={() => setShowEditDialog(false)} className="rounded-full">
               Cancel
             </Button>
-            <Button onClick={handleEdit} disabled={saving}>
-              {saving ? "Saving..." : "Save Changes"}
+            <Button onClick={handleEdit} disabled={saving} className="rounded-full bg-primary hover:bg-primary/90 text-primary-foreground px-8">
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save Changes"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -210,23 +222,30 @@ export function HouseholdActions({
 
       {/* Delete Dialog */}
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent>
+        <AlertDialogContent className="bg-white border-rose-100 shadow-2xl shadow-rose-500/10 rounded-[2rem]">
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Household?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will permanently delete <strong>{householdName}</strong> and
-              all associated data including members, income, and expenses. This
-              action cannot be undone.
+            <AlertDialogTitle className="flex items-center gap-2 text-rose-600 font-black text-xl">
+              <AlertCircle className="h-5 w-5" />
+              Delete Household?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-slate-500 font-medium leading-relaxed">
+              Are you sure you want to delete <span className="font-black text-slate-900">"{householdName}"</span>? 
+              This will permanently remove all transaction history and member associations.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
-          <AlertDialogAction
-            onClick={handleDelete}
-            disabled={deleting}
-            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-          >
-            {deleting ? "Deleting..." : "Delete"}
-          </AlertDialogAction>
+          <AlertDialogFooter className="mt-6">
+            <AlertDialogCancel disabled={deleting} className="rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 border-transparent font-bold">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                handleDelete();
+              }}
+              disabled={deleting}
+              className="bg-rose-500 text-white hover:bg-rose-600 rounded-full px-8 shadow-md shadow-rose-500/20 font-bold"
+            >
+              {deleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Delete Household"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     </>

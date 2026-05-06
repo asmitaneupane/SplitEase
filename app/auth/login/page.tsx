@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Field, FieldLabel } from '@/components/ui/field'
 import { Spinner } from '@/components/ui/spinner'
 import { Receipt, ArrowRight, Mail, Lock, AlertCircle } from 'lucide-react'
-import { claimPendingHouseholdMembership } from '@/lib/household-membership'
+import { claimPendingMemberships } from '@/lib/membership'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -35,7 +35,7 @@ export default function LoginPage() {
       setLoading(false)
     } else {
       if (data.user) {
-        await claimPendingHouseholdMembership(supabase, data.user)
+        await claimPendingMemberships(supabase, data.user)
       }
       router.push('/dashboard')
       router.refresh()
@@ -43,18 +43,17 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-primary/20 via-background to-background">
-      {/* Decorative blobs */}
-      <div className="absolute top-[-10%] right-[-10%] w-[40%] h-[40%] bg-primary/10 rounded-full blur-[120px] animate-pulse" />
-      <div className="absolute bottom-[-10%] left-[-10%] w-[40%] h-[40%] bg-secondary/20 rounded-full blur-[120px] animate-pulse delay-700" />
+    <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-slate-950">
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-indigo-900/40 via-slate-950 to-slate-950" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,_var(--tw-gradient-stops))] from-emerald-900/20 via-slate-950 to-slate-950" />
 
       <div className="w-full max-w-md px-4 relative z-10">
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex items-center gap-3 group">
-            <div className="p-3 bg-primary rounded-2xl group-hover:rotate-12 transition-all duration-500 shadow-2xl shadow-primary/40">
+            <div className="p-3 bg-gradient-to-br from-primary to-indigo-600 rounded-2xl group-hover:rotate-12 transition-all duration-500 shadow-2xl shadow-primary/40">
               <Receipt className="h-8 w-8 text-primary-foreground" />
             </div>
-            <span className="text-3xl font-black tracking-tighter text-foreground group-hover:text-primary transition-colors">
+            <span className="text-3xl font-black tracking-tight text-foreground group-hover:text-primary transition-colors">
               SplitEase
             </span>
           </Link>

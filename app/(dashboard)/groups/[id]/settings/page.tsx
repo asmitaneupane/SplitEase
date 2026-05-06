@@ -46,17 +46,24 @@ export default function GroupSettingsPage({ params }: PageProps) {
 
   useEffect(() => {
     async function fetchGroup() {
-      const { data } = await supabase
-        .from('groups')
-        .select('*')
-        .eq('id', groupId)
-        .single()
+      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(groupId);
+      let groupData;
 
-      if (data) {
-        setGroup(data)
-        setName(data.name)
-        setDescription(data.description || '')
-        setCurrency(data.currency)
+      if (isUUID) {
+        const { data } = await supabase.from('groups').select('*').eq('id', groupId).single();
+        groupData = data;
+      }
+
+      if (!groupData) {
+        const { data } = await supabase.from('groups').select('*').eq('slug', groupId).single();
+        groupData = data;
+      }
+
+      if (groupData) {
+        setGroup(groupData)
+        setName(groupData.name)
+        setDescription(groupData.description || '')
+        setCurrency(groupData.currency)
       }
       setFetchingData(false)
     }
@@ -70,6 +77,14 @@ export default function GroupSettingsPage({ params }: PageProps) {
     setSuccess(false)
 
     try {
+      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(groupId);
+      let realGroupId = groupId;
+
+      if (!isUUID) {
+        const { data } = await supabase.from('groups').select('id').eq('slug', groupId).single();
+        if (data) realGroupId = data.id;
+      }
+
       const { error: updateError } = await supabase
         .from('groups')
         .update({
@@ -78,7 +93,7 @@ export default function GroupSettingsPage({ params }: PageProps) {
           currency,
           updated_at: new Date().toISOString(),
         })
-        .eq('id', groupId)
+        .eq('id', realGroupId)
 
       if (updateError) throw updateError
 
@@ -94,10 +109,18 @@ export default function GroupSettingsPage({ params }: PageProps) {
   const handleDelete = async () => {
     setDeleting(true)
     try {
+      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(groupId);
+      let realGroupId = groupId;
+
+      if (!isUUID) {
+        const { data } = await supabase.from('groups').select('id').eq('slug', groupId).single();
+        if (data) realGroupId = data.id;
+      }
+
       const { error } = await supabase
         .from('groups')
         .delete()
-        .eq('id', groupId)
+        .eq('id', realGroupId)
 
       if (error) throw error
 
@@ -121,7 +144,7 @@ export default function GroupSettingsPage({ params }: PageProps) {
     <div className="max-w-2xl mx-auto space-y-6">
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="icon" asChild>
-          <Link href={`/groups/${groupId}`}>
+          <Link href={`/groups/${group?.slug || groupId}`}>
             <ArrowLeft className="h-4 w-4" />
           </Link>
         </Button>

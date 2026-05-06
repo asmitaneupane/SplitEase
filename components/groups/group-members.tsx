@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { sendInvitationEmail } from '@/lib/email-actions'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -34,12 +35,13 @@ import type { GroupMember } from '@/lib/types'
 
 interface GroupMembersProps {
   groupId: string
+  groupName: string
   members: GroupMember[]
   isAdmin: boolean
   currentUserId: string
 }
 
-export function GroupMembers({ groupId, members, isAdmin, currentUserId }: GroupMembersProps) {
+export function GroupMembers({ groupId, groupName, members, isAdmin, currentUserId }: GroupMembersProps) {
   const [open, setOpen] = useState(false)
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
@@ -98,6 +100,22 @@ export function GroupMembers({ groupId, members, isAdmin, currentUserId }: Group
         })
 
       if (memberError) throw memberError
+
+      // Send invitation email if email is provided and not temporary
+      if (email && !isTemporary) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('full_name')
+          .eq('id', user.id)
+          .single()
+
+        await sendInvitationEmail({
+          to: email,
+          inviterName: profile?.full_name || 'Someone',
+          groupName,
+          type: 'group'
+        })
+      }
 
       // Log activity
       await supabase.from('activities').insert({
@@ -164,7 +182,7 @@ export function GroupMembers({ groupId, members, isAdmin, currentUserId }: Group
                 Add Member
               </Button>
             </DialogTrigger>
-            <DialogContent className="glass border-transparent shadow-2xl rounded-3xl max-w-sm">
+            <DialogContent className="bg-[#f8faff] border border-blue-100/50 shadow-2xl rounded-[2rem] max-w-sm">
               <DialogHeader>
                 <DialogTitle className="text-2xl font-black tracking-tight">Expand the Circle</DialogTitle>
                 <DialogDescription className="font-medium text-muted-foreground/80">
@@ -290,7 +308,7 @@ export function GroupMembers({ groupId, members, isAdmin, currentUserId }: Group
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </AlertDialogTrigger>
-                    <AlertDialogContent className="glass border-transparent shadow-2xl rounded-3xl max-w-sm">
+                    <AlertDialogContent className="bg-[#f8faff] border border-blue-100/50 shadow-2xl rounded-[2rem] max-w-sm">
                       <AlertDialogHeader>
                         <AlertDialogTitle className="text-xl font-black tracking-tight">Expel Member?</AlertDialogTitle>
                         <AlertDialogDescription className="font-medium text-muted-foreground/80">

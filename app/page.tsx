@@ -21,11 +21,11 @@ export default async function LandingPage() {
       {/* Header */}
       <header className="border-b border-border/50 glass sticky top-0 z-50 transition-all">
         <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2 group cursor-pointer">
-            <div className="p-2 bg-primary rounded-xl group-hover:rotate-12 transition-transform duration-300">
+          <div className="flex items-center gap-3 group cursor-pointer">
+            <div className="p-2.5 bg-gradient-to-br from-primary to-indigo-600 rounded-xl group-hover:rotate-6 transition-all duration-500 shadow-xl shadow-primary/30 active:scale-95">
               <Receipt className="h-5 w-5 text-primary-foreground" />
             </div>
-            <span className="text-xl font-bold tracking-tight">SplitEase</span>
+            <span className="text-xl font-black tracking-tight">SplitEase</span>
           </div>
           <div className="flex items-center gap-4">
             <Link href="/auth/login" className="text-sm font-medium hover:text-primary transition-colors">
@@ -46,7 +46,7 @@ export default async function LandingPage() {
               <Sparkles className="h-4 w-4" />
               Ultimate Shared Finance Management
             </div>
-            <h1 className="text-5xl md:text-7xl font-extrabold text-foreground mb-8 text-balance leading-[1.1] tracking-tight animate-in fade-in slide-in-from-bottom-6 duration-1000">
+            <h1 className="text-5xl md:text-7xl font-black text-foreground mb-8 text-balance leading-[1.1] tracking-tight animate-in fade-in slide-in-from-bottom-6 duration-1000">
               Split expenses, <br />
               <span className="text-gradient">not relationships.</span>
             </h1>
@@ -208,11 +208,11 @@ export default async function LandingPage() {
       {/* Footer */}
       <footer className="border-t border-border/50 py-12 px-4 bg-background">
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-8">
-          <div className="flex items-center gap-2">
-            <div className="p-2 bg-primary rounded-xl">
+          <div className="flex items-center gap-3 group">
+            <div className="p-2.5 bg-gradient-to-br from-primary to-indigo-600 rounded-xl">
               <Receipt className="h-5 w-5 text-primary-foreground" />
             </div>
-            <span className="text-xl font-bold">SplitEase</span>
+            <span className="text-xl font-black tracking-tight">SplitEase</span>
           </div>
           <div className="flex gap-8 text-sm text-muted-foreground font-medium">
              <Link href="#" className="hover:text-primary transition-colors">Privacy Policy</Link>

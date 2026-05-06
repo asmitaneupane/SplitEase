@@ -19,10 +19,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeft, Trash2, Plus, Edit2 } from "lucide-react";
+import { ArrowLeft, Trash2, Plus, Edit2, Mail } from "lucide-react";
 import Link from "next/link";
+import { Badge } from "@/components/ui/badge";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
+import { sendInvitationEmail } from "@/lib/email-actions";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -31,6 +33,7 @@ import {
   AlertDialogDescription,
   AlertDialogHeader,
   AlertDialogTitle,
+  AlertDialogFooter,
 } from "@/components/ui/alert-dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Spinner } from "@/components/ui/spinner";
@@ -82,13 +85,21 @@ export default function HouseholdSettingsPage() {
   const loadHousehold = async () => {
     try {
       const supabase = createClient();
-      const { data, error } = await supabase
-        .from("households")
-        .select("*")
-        .eq("id", householdId)
-        .single();
+      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(householdId);
+      let data;
 
-      if (error) throw error;
+      if (isUUID) {
+        const { data: idData } = await supabase.from("households").select("*").eq("id", householdId).single();
+        data = idData;
+      }
+
+      if (!data) {
+        const { data: slugData } = await supabase.from("households").select("*").eq("slug", householdId).single();
+        data = slugData;
+      }
+
+      if (!data) throw new Error("Household not found");
+      
       setHousehold(data);
       setEditName(data.name);
       setEditDescription(data.description || "");
@@ -102,10 +113,27 @@ export default function HouseholdSettingsPage() {
   const loadMembers = async () => {
     try {
       const supabase = createClient();
+      
+      // First get the household to get its real ID
+      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(householdId);
+      let householdData;
+
+      if (isUUID) {
+        const { data } = await supabase.from("households").select("id").eq("id", householdId).single();
+        householdData = data;
+      }
+
+      if (!householdData) {
+        const { data } = await supabase.from("households").select("id").eq("slug", householdId).single();
+        householdData = data;
+      }
+
+      if (!householdData) return;
+
       const { data, error } = await supabase
         .from("household_members")
         .select("*")
-        .eq("household_id", householdId)
+        .eq("household_id", householdData.id)
         .order("joined_at", { ascending: true });
 
       if (error) throw error;
@@ -127,6 +155,21 @@ export default function HouseholdSettingsPage() {
     setSavingHousehold(true);
     try {
       const supabase = createClient();
+      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(householdId);
+      let householdData;
+
+      if (isUUID) {
+        const { data } = await supabase.from("households").select("id").eq("id", householdId).single();
+        householdData = data;
+      }
+
+      if (!householdData) {
+        const { data } = await supabase.from("households").select("id").eq("slug", householdId).single();
+        householdData = data;
+      }
+
+      if (!householdData) throw new Error("Household not found");
+
       const { error } = await supabase
         .from("households")
         .update({
@@ -134,7 +177,7 @@ export default function HouseholdSettingsPage() {
           description: editDescription || null,
           currency: editCurrency,
         })
-        .eq("id", householdId);
+        .eq("id", householdData.id);
 
       if (error) throw error;
 
@@ -155,10 +198,25 @@ export default function HouseholdSettingsPage() {
     setDeletingHousehold(true);
     try {
       const supabase = createClient();
+      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(householdId);
+      let householdData;
+
+      if (isUUID) {
+        const { data } = await supabase.from("households").select("id").eq("id", householdId).single();
+        householdData = data;
+      }
+
+      if (!householdData) {
+        const { data } = await supabase.from("households").select("id").eq("slug", householdId).single();
+        householdData = data;
+      }
+
+      if (!householdData) throw new Error("Household not found");
+
       const { error } = await supabase
         .from("households")
         .delete()
-        .eq("id", householdId);
+        .eq("id", householdData.id);
 
       if (error) throw error;
 
@@ -187,11 +245,26 @@ export default function HouseholdSettingsPage() {
 
       const supabase = createClient();
 
+      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(householdId);
+      let householdData;
+
+      if (isUUID) {
+        const { data } = await supabase.from("households").select("id").eq("id", householdId).single();
+        householdData = data;
+      }
+
+      if (!householdData) {
+        const { data } = await supabase.from("households").select("id").eq("slug", householdId).single();
+        householdData = data;
+      }
+
+      if (!householdData) throw new Error("Household not found");
+
       // Check if user is already a member
       const { data: existingMember } = await supabase
         .from("household_members")
         .select("id")
-        .eq("household_id", householdId)
+        .eq("household_id", householdData.id)
         .eq("email", newMemberEmail)
         .single();
         
@@ -209,7 +282,7 @@ export default function HouseholdSettingsPage() {
 
       // Add member to household
       const { error } = await supabase.from("household_members").insert({
-        household_id: householdId,
+        household_id: householdData.id,
         user_id: profile ? profile.id : null,
         name: newMemberName,
         email: newMemberEmail,
@@ -217,6 +290,14 @@ export default function HouseholdSettingsPage() {
       });
 
       if (error) throw error;
+
+      // Send invitation email
+      await sendInvitationEmail({
+        to: newMemberEmail,
+        inviterName: currentUser?.user_metadata?.full_name || currentUser?.email || "Someone",
+        groupName: household?.name || "a shared log",
+        type: "household",
+      });
 
       toast.success("Member added to the circle!");
       setNewMemberName("");
@@ -290,12 +371,12 @@ export default function HouseholdSettingsPage() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" className="rounded-full glass" asChild>
-            <Link href={`/household/${householdId}`}>
+            <Link href={`/household/${household?.slug || householdId}`}>
               <ArrowLeft className="h-5 w-5" />
             </Link>
           </Button>
           <div>
-            <h1 className="text-3xl font-black tracking-tight">Circle Settings</h1>
+            <h1 className="text-3xl font-black tracking-tight">Log Settings</h1>
             <p className="text-muted-foreground font-medium uppercase tracking-widest text-[10px]">Configure your shared financial universe</p>
           </div>
         </div>
@@ -308,7 +389,7 @@ export default function HouseholdSettingsPage() {
             <CardHeader className="bg-card/30 flex flex-row items-center justify-between">
               <div>
                 <CardTitle className="text-xl font-black tracking-tight">Identity</CardTitle>
-                <CardDescription className="font-medium">Core details of this monthly log</CardDescription>
+                <CardDescription className="font-medium">Core details of this household</CardDescription>
               </div>
               {isOwner && !editMode && (
                 <Button size="sm" variant="ghost" className="rounded-full font-bold" onClick={() => setEditMode(true)}>
@@ -373,7 +454,7 @@ export default function HouseholdSettingsPage() {
                   </div>
                   <div className="flex gap-3 pt-2">
                     <Button onClick={handleSaveHousehold} disabled={savingHousehold} className="rounded-xl px-8 font-black uppercase tracking-widest text-[10px]">
-                      {savingHousehold ? "Saving..." : "Update Circle"}
+                      {savingHousehold ? "Saving..." : "Update Log"}
                     </Button>
                     <Button variant="ghost" onClick={() => setEditMode(false)} className="rounded-xl px-8 font-black uppercase tracking-widest text-[10px]">
                       Abort
@@ -486,7 +567,7 @@ export default function HouseholdSettingsPage() {
                     />
                   </div>
                   <Button type="submit" disabled={addingMember} className="w-full h-12 rounded-xl font-black uppercase tracking-widest text-[10px] shadow-lg shadow-primary/20">
-                    {addingMember ? "Expanding..." : "Add to Circle"}
+                    {addingMember ? "Expanding..." : "Add to Log"}
                   </Button>
                 </form>
               </CardContent>
@@ -507,7 +588,7 @@ export default function HouseholdSettingsPage() {
                   onClick={() => setShowDeleteDialog(true)}
                 >
                   <Trash2 className="h-4 w-4 mr-2" />
-                  Terminate Circle
+                  Terminate Log
                 </Button>
               </CardContent>
             </Card>
@@ -517,9 +598,9 @@ export default function HouseholdSettingsPage() {
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent className="glass border-transparent shadow-2xl rounded-3xl max-w-sm">
+        <AlertDialogContent className="bg-[#f8faff] border border-blue-100/50 shadow-2xl rounded-[2rem] max-w-sm">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-xl font-black tracking-tight">Terminate Circle?</AlertDialogTitle>
+            <AlertDialogTitle className="text-xl font-black tracking-tight">Terminate Log?</AlertDialogTitle>
             <AlertDialogDescription className="font-medium text-muted-foreground/80">
               This will permanently delete <strong>{household?.name}</strong>{" "}
               and all history. This cannot be reversed.

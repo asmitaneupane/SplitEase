@@ -24,6 +24,7 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
+import { DualDatePicker } from "@/components/ui/nepali-date-picker";
 
 interface AddExpensePageProps {
   params: Promise<{ id: string }>;
@@ -78,39 +79,61 @@ const EXPENSE_CATEGORIES = [
 export default function AddExpensePage({ params }: AddExpensePageProps) {
   const router = useRouter();
   const [householdId, setHouseholdId] = useState("");
+  const [householdSlug, setHouseholdSlug] = useState("");
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(false);
+  const [isCustomCategory, setIsCustomCategory] = useState(false);
+  const [customCategory, setCustomCategory] = useState("");
   const [form, setForm] = useState<ExpenseForm>({
     member_id: "",
     amount: "",
     description: "",
-    category: "Other",
+    category: "Food & Groceries",
     date: new Date().toISOString().split("T")[0],
     notes: "",
   });
 
   useEffect(() => {
     (async () => {
-      const { id } = await params;
-      setHouseholdId(id);
-
+      const { id: idOrSlug } = await params;
       const supabase = createClient();
+      
+      // Robust lookup (supports ID or Slug)
+      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(idOrSlug);
+      let householdData;
+
+      if (isUUID) {
+        const { data } = await supabase.from("households").select("id, slug").eq("id", idOrSlug).single();
+        householdData = data;
+      }
+
+      if (!householdData) {
+        // Try by slug
+        const { data } = await supabase.from("households").select("id, slug").eq("slug", idOrSlug).single();
+        householdData = data;
+      }
+
+      if (!householdData) return;
+      
+      setHouseholdId(householdData.id);
+      setHouseholdSlug(householdData.slug);
+
       const {
         data: { user },
       } = await supabase.auth.getUser();
-      const { data } = await supabase
+      const { data: memberData } = await supabase
         .from("household_members")
         .select("id, name, user_id")
-        .eq("household_id", id);
+        .eq("household_id", householdData.id);
 
-      if (data && data.length > 0) {
-        setMembers(data);
+      if (memberData && memberData.length > 0) {
+        setMembers(memberData);
         const currentUserMember = user
-          ? data.find((member) => member.user_id === user.id)
+          ? memberData.find((member) => member.user_id === user.id)
           : undefined;
         setForm((prev) => ({
           ...prev,
-          member_id: currentUserMember?.id || data[0].id,
+          member_id: currentUserMember?.id || memberData[0].id,
         }));
       }
     })();
@@ -136,12 +159,20 @@ export default function AddExpensePage({ params }: AddExpensePageProps) {
         return;
       }
 
+      if (isCustomCategory && !customCategory.trim()) {
+        toast.error("Please enter a custom category name");
+        setLoading(false);
+        return;
+      }
+
+      const finalCategory = isCustomCategory ? customCategory.trim() : form.category;
+
       const { error } = await supabase.from("household_expense_logs").insert({
         household_id: householdId,
         member_id: form.member_id,
         amount: Number(form.amount),
         description: form.description,
-        category: form.category,
+        category: finalCategory,
         date: form.date,
         notes: form.notes,
         created_by: user.id,
@@ -163,14 +194,14 @@ export default function AddExpensePage({ params }: AddExpensePageProps) {
     <div className="max-w-2xl mx-auto space-y-6">
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="icon" asChild>
-          <Link href={`/household/${householdId}`}>
+          <Link href={`/household/${householdSlug || householdId}`}>
             <ArrowLeft className="h-4 w-4" />
           </Link>
         </Button>
         <div>
           <h1 className="text-2xl font-bold text-foreground">Add Expense</h1>
           <p className="text-muted-foreground">
-            Record an expense from household funds
+            Record an expense for this household
           </p>
         </div>
       </div>
@@ -237,10 +268,16 @@ export default function AddExpensePage({ params }: AddExpensePageProps) {
               <div>
                 <Label htmlFor="category">Category *</Label>
                 <Select
-                  value={form.category}
-                  onValueChange={(value) =>
-                    setForm((prev) => ({ ...prev, category: value }))
-                  }
+                  value={isCustomCategory ? "custom" : form.category}
+                  onValueChange={(value) => {
+                    if (value === "custom") {
+                      setIsCustomCategory(true);
+                      setCustomCategory("");
+                    } else {
+                      setIsCustomCategory(false);
+                      setForm((prev) => ({ ...prev, category: value }));
+                    }
+                  }}
                 >
                   <SelectTrigger className="mt-1">
                     <SelectValue />
@@ -251,22 +288,28 @@ export default function AddExpensePage({ params }: AddExpensePageProps) {
                         {cat}
                       </SelectItem>
                     ))}
+                    <SelectItem value="custom" className="text-primary font-bold">
+                      + Custom Category
+                    </SelectItem>
                   </SelectContent>
                 </Select>
+                {isCustomCategory && (
+                  <Input
+                    placeholder="Enter custom category name"
+                    className="mt-2"
+                    value={customCategory}
+                    onChange={(e) => setCustomCategory(e.target.value)}
+                    autoFocus
+                  />
+                )}
               </div>
             </div>
 
             <div>
               <Label htmlFor="date">Date *</Label>
-              <Input
-                id="date"
-                type="date"
-                value={form.date}
-                onChange={(e) =>
-                  setForm((prev) => ({ ...prev, date: e.target.value }))
-                }
-                required
-                className="mt-1"
+              <DualDatePicker
+                date={form.date}
+                onChange={(date) => setForm(prev => ({ ...prev, date }))}
               />
             </div>
 
@@ -291,7 +334,7 @@ export default function AddExpensePage({ params }: AddExpensePageProps) {
             {loading ? "Adding..." : "Add Expense"}
           </Button>
           <Button type="button" variant="outline" asChild>
-            <Link href={`/household/${householdId}`}>Cancel</Link>
+            <Link href={`/household/${householdSlug || householdId}`}>Cancel</Link>
           </Button>
         </div>
       </form>
