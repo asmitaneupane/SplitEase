@@ -103,7 +103,7 @@ export default async function ActivityPage() {
     }
     acc[date].push(activity)
     return acc
-  }, {} as Record<string, typeof activities>) ?? {}
+  }, {} as Record<string, NonNullable<typeof activities>>) ?? {}
 
   return (
     <div className="space-y-6">
@@ -148,7 +148,7 @@ export default async function ActivityPage() {
                     <div className="h-px flex-1 bg-border" />
                   </div>
                   <div className="space-y-4">
-                    {dayActivities?.map((activity) => {
+                    {(dayActivities as any[])?.map((activity: any) => {
                       const Icon = activityIcons[activity.entity_type] ?? Receipt
                       const colorClass = actionColors[activity.action] ?? 'bg-secondary text-secondary-foreground'
                       const { action, detail } = getActivityMessage(activity)

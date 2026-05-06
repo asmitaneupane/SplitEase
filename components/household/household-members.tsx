@@ -304,7 +304,7 @@ export function HouseholdMembers({
                       </AlertDialogContent>
                     </AlertDialog>
                   )}
-                  <Badge variant="ghost" className="text-[8px] font-black uppercase tracking-widest h-5 px-2 bg-slate-50 border border-black/5">
+                  <Badge variant="secondary" className="text-[8px] font-black uppercase tracking-widest h-5 px-2 bg-slate-50 border border-black/5">
                     {member.role}
                   </Badge>
                 </div>

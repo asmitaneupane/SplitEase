@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 
 import { cn } from "@/lib/utils";
 
-interface EmptyProps extends React.ComponentProps<"div"> {
+interface EmptyProps extends Omit<React.ComponentProps<"div">, "title"> {
   icon?: ReactNode;
   title?: ReactNode;
   description?: ReactNode;

@@ -130,9 +130,9 @@ export default async function DashboardPage() {
 
   // Combine data for chart
   const chartData = [
-     ...(expenses ?? []).map(e => ({ date: e.date, amount: Number(e.amount), type: 'expense', source: 'group' })),
-     ...(householdExpenses ?? []).map(e => ({ date: e.date, amount: Number(e.amount), type: 'expense', source: 'household' })),
-     ...(householdIncomes ?? []).map(i => ({ date: i.date, amount: Number(i.amount), type: 'income', source: 'household' }))
+     ...(expenses ?? []).map(e => ({ date: e.date, amount: Number(e.amount), type: 'expense' as const, source: 'group' as const })),
+     ...(householdExpenses ?? []).map(e => ({ date: e.date, amount: Number(e.amount), type: 'expense' as const, source: 'household' as const })),
+     ...(householdIncomes ?? []).map(i => ({ date: i.date, amount: Number(i.amount), type: 'income' as const, source: 'household' as const }))
   ].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
 
   const groupsWithAmount = groups?.map((group) => {
@@ -284,7 +284,7 @@ export default async function DashboardPage() {
                 subtitle="Your private financial spaces"
                 items={householdsWithAmount.slice(0, 5)} 
                 icon={Wallet} 
-                hrefPrefix="/household"
+                hrefPrefix="/household" 
                 emptyTitle="No logs found"
                 emptyDescription="Keep track of your household budget."
                 emptyActionHref="/household/new"

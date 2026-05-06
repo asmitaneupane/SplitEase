@@ -45,13 +45,15 @@ export default async function HouseholdExpensePage({
     expenseLogs?.reduce((sum, log) => sum + Number(log.amount), 0) || 0;
 
   // Group by category
-  const expensesByCategory: Record<string, typeof expenseLogs> = {};
-  expenseLogs?.forEach((log) => {
-    if (!expensesByCategory[log.category]) {
-      expensesByCategory[log.category] = [];
-    }
-    expensesByCategory[log.category].push(log);
-  });
+  const expensesByCategory: Record<string, NonNullable<typeof expenseLogs>> = {};
+  if (expenseLogs) {
+    expenseLogs.forEach((log) => {
+      if (!expensesByCategory[log.category]) {
+        expensesByCategory[log.category] = [];
+      }
+      expensesByCategory[log.category].push(log);
+    });
+  }
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">

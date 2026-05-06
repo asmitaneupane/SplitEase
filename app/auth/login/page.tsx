@@ -90,7 +90,7 @@ export default function LoginPage() {
               <div className="space-y-2">
                 <div className="flex items-center justify-between ml-1">
                    <FieldLabel htmlFor="password" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Secret Key</FieldLabel>
-                   <Link href="/auth/forgot-password" size="sm" className="text-[10px] font-black uppercase tracking-widest text-primary hover:underline">Forgot?</Link>
+                   <Link href="/auth/forgot-password" className="text-[10px] font-black uppercase tracking-widest text-primary hover:underline">Forgot?</Link>
                 </div>
                 <div className="relative group">
                    <Input
